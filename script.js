@@ -97,16 +97,60 @@ const form = document.getElementById('depositForm');
         return;
 }
 
-      let content = `<p>Downloaded from;</p><h1 style='color:blue;'>ORION TOOLS</h1>\n\n\nYour deposits for ${bank} are:\n\n`;
+      let content = `Downloaded from-ORION TOOLS\n\n\nYour deposits for ${bank} are:\n\n`;
       filtered.forEach(d => {
         content += `UGX ${d.amount.toLocaleString()} on ${new Date(d.timestamp).toLocaleString()}\n`;
 });
+ async function generatePDF() {
+      const { jsPDF} = window.jspdf;
+      const paperSize = document.getElementById('paperSize').value;
 
-      const blob = new Blob([content], { type: 'text/plain'});
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${bank}_deposits.txt`;
-      link.click();
+      const sizes = {
+        A4: [210, 297],
+        Letter: [216, 279],
+        Legal: [216, 356]
+};
+      const format = sizes[paperSize] || sizes["A4"];
+
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: format
+});
+
+      // Header
+      const now = new Date();
+      const dateStr = now.toLocaleDateString();
+      const timeStr = now.toLocaleTimeString();
+      doc.setFontSize(12);
+      doc.text(`Deposit Summary - ${dateStr} ${timeStr}`, 15, 15);
+
+      // Table Content
+      const bank = "MyBank";
+      const content = [
+        { account: "123456", amount: "$5,000", date: "2025-08-20"},
+        { account: "789012", amount: "$2,750", date: "2025-08-19"},
+        { account: "345678", amount: "$1,200", date: "2025-08-18"}
+      ];
+
+      const tableData = content.map(row => [row.account, row.amount, row.date]);
+
+      doc.autoTable({
+        head: [["Account", "Amount", "Date"]],
+        body: tableData,
+        startY: 25,
+        theme: "grid",
+        styles: { fontSize: 10}
+});
+
+      // Footer
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(10);
+      doc.text(`Downloaded from ${bank} Dashboard`, 15, pageHeight - 10);
+
+      // Save PDF
+      doc.save(`${bank}_deposits.pdf`);
+}
 });
 
     const storedPassword = localStorage.getItem('depositPassword');
@@ -134,14 +178,6 @@ const form = document.getElementById('depositForm');
       updateDisplay();
 }
 
-    window.onload = () => {
-      if (!storedPassword) {
-        passwordTitle.textContent = "Set a Pasword";
-} else {
-        passwordTitle.textContent = "Enter Password";
-}
-};
-
     function toggleMenu() {
       sideMenu.style.right = sideMenu.style.right === '0px'? '-250px': '0px';
 }
@@ -151,14 +187,6 @@ const form = document.getElementById('depositForm');
       const isDark = root.style.getPropertyValue('--bg-color') === '#222';
       root.style.setProperty('--bg-color', isDark? '#f4f4f4': '#222');
       root.style.setProperty('--text-color', isDark? '#000': '#fff');
-}
-
-    function editPassword() {
-      const newPass = prompt("Enter new password:");
-      if (newPass) {
-        localStorage.setItem('depositPassword', newPass);
-        alert('password updated successfully👍');
-}
 }
 
     function adjustTextSize() {
