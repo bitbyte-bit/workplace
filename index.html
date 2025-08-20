@@ -6,12 +6,27 @@
     <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css"/>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+.register('/service-worker.js')
+.then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+          registration.update();
+})
+.catch(error => {
+          console.error('Service Worker registration failed:', error);
+});
+});
+}
+</script>
+<meta property="og:title" content="orionhub" />
+<meta property="og:description" content="your one stop shop for tech,creativity and entertainment." />
+<meta property="og:image" content="https://orionhub.netlify.app/orog.png" />
+<meta property="og:url" content="https://orionhub.netlify.app/" />
+<meta property="og:type" content="website" />
     <title>ORION</title>
-</head>
-<body>
-      <style>
- 
-  </style>
 </head>
 <body>
 
@@ -28,6 +43,7 @@
     <a href="#contact">Contact</a>
     <a href="news.html">News</a>
     <a href="tool1.html">Savings</a>
+    <a href="monitor.html">admins</a>
 
   </nav>
 
