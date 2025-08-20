@@ -13,7 +13,15 @@
   <div class="nav">
     <h1> Savings</h1>
     <div class="actions">
-      <button id="exportBtn">📤 Export Record</button>
+       <label for="paperSize">Select Paper Size:</label>
+  <select id="paperSize">
+    <option value="A4">A4</option>
+    <option value="Letter">Letter</option>
+    <option value="Legal">Legal</option>
+  </select>
+  <br />
+  <button onclick="generatePDF()">Download PDF</button>
+
     </div>
   </div>
   <div id="passwordPopup">
