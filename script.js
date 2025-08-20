@@ -153,22 +153,7 @@ const form = document.getElementById('depositForm');
 }
 });
 
-    const storedPassword = localStorage.getItem('depositPassword');
-
-    passwordBtn.addEventListener('click', () => {
-      const input = passwordInput.value;
-      if (!input) return;
-
-      if (!storedPassword) {
-        localStorage.setItem('depositPassword', input);
-        unlockApp();
-} else if (input === storedPassword) {
-        unlockApp();
-} else {
-        alert("Incorrect password.");
-}
-});
-
+   
     function unlockApp() {
       passwordPopup.style.display = 'none';
       form.style.display = 'block';
@@ -220,3 +205,4 @@ function generateID() {
       window.open(whatsappURL, '_blank');
       document.getElementById('status').innerText = `✅ Message sent with ID ${requestId}`;
 });
+
