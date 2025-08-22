@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Device & Location Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f8;
+      color: #333;
+      padding: 2rem;
+}
+.dashboard {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+    h2 {
+      margin-top: 0;
+      color: #0078D7;
+}
+.info {
+      margin-bottom: 1rem;
+}
+.label {
+      font-weight: bold;
+}
+    #location {
+      font-size: 1.2rem;
+      color: #333;
+      margin-top: 1rem;
+}
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <h2>🌍 Device & Location Dashboard</h2>
+    <div class="info"><span class="label">Browser:</span> <span id="browser"></span></div>
+    <div class="info"><span class="label">Platform:</span> <span id="platform"></span></div>
+    <div class="info"><span class="label">Language:</span> <span id="language"></span></div>
+    <div class="info"><span class="label">Online:</span> <span id="online"></span></div>
+    <div class="info"><span class="label">Location:</span> <span id="location">Fetching...</span></div>
+  </div>
+
+   <h2>📍 Your Location (Google)</h2>
+  <div id="location">Detecting...</div>
+  <script>
+    // Device Info
+    document.getElementById('browser').textContent = navigator.userAgent;
+    document.getElementById('platform').textContent = navigator.platform;
+    document.getElementById('language').textContent = navigator.language;
+    document.getElementById('online').textContent = navigator.onLine? "Online": "Offline";
+
+    // Location Info
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude} = position.coords;
+        fetch(`https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=10953e7ee257308a5cef4ad933f2756493949190`)
+.then(res => res.json())
+.then(data => {
+            const place = data.results[0].formatted;
+            document.getElementById('location').textContent = place;
+})
+.catch(err => {
+            document.getElementById('location').textContent = "Error fetching location";
+            console.error(err);
+});
+},
+      (error) => {
+        document.getElementById('location').textContent = "Location access denied";
+}
+);
+ const locationDiv = document.getElementById('location');
+
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude} = position.coords;
+
+        
+        const apiKey = '36ff5539a4fe9065d7bd5edbd6c657e65af970d0'; 
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`;
+
+        fetch(url)
+.then(response => response.json())
+.then(data => {
+            if (data.status === "OK") {
+              const placeName = data.results[0].formatted_address;
+              locationDiv.textContent = placeName;
+} else {
+              locationDiv.textContent = "Unable to fetch location";
+              console.error(data.status);
+}
+})
+.catch(error => {
+            locationDiv.textContent = "Error fetching location";
+            console.error(error);
+});
+},
+      (error) => {
+        locationDiv.textContent = "Location access denied";
+        console.error(error.message);
+}
+);
+  </script>
+</body>
+</html>
+

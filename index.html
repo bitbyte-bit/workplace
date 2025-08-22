@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share"/>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+.register('/service-worker.js')
+.then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+          registration.update();
+})
+.catch(error => {
+          console.error('Service Worker registration failed:', error);
+});
+});
+}
+
+ window.addEventListener('load', function () {
+      if (window.innerWidth> 500) {
+        const overlay=document.createElement('div')
+        overlay.className='overlay';
+        const warning=document.createElement('div');
+        warning.className='warning';
+        warning.innerText='For better experience,please use a device with width less than 500px.';
+        warning.style.color='white';
+        warning.style.padding='10px';
+        warning.style.textAlign='center';
+        warning.style.backgroundColor='red';
+        overlay.appendChild(warning);
+        document.body.appendChild(overlay);
+}
+});
+
+   
+    window.addEventListener('resize', function () {
+      if (window.innerWidth> 500) {
+        console.warn('Window width exceeds 500px.');
+}
+});
+
+ let widthCheckInterval;
+    let navigationDisabled = false;
+
+    function disableNavigation() {
+      if (!navigationDisabled) {
+        const overlay = document.createElement('div');
+        overlay.className = 'disabled-overlay';
+        overlay.innerText = '🚫 Navigation disabled: Please use a mobile,the dsktop version of this app is currently unavailable.';
+        document.body.appendChild(overlay);
+
+        // Disable all links
+        document.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', preventClick, true);
+});
+
+        navigationDisabled = true;
+}
+}
+
+    function enableNavigation() {
+      const overlay = document.querySelector('.disabled-overlay');
+      if (overlay) overlay.remove();
+
+      document.querySelectorAll('a').forEach(link => {
+        link.removeEventListener('click', preventClick, true);
+});
+
+      navigationDisabled = false;
+}
+
+    function preventClick(e) {
+      e.preventDefault();
+      e.stopPropagation();
+}
+
+    function checkWidth() {
+      if (window.innerWidth> 500) {
+        disableNavigation();
+} else {
+        enableNavigation();
+}
+}
+
+    window.addEventListener('load', () => {
+      checkWidth();
+      widthCheckInterval = setInterval(checkWidth, 1000); // Check every second
+});
+
+    window.addEventListener('resize', checkWidth);
+</script>
+<meta property="og:title" content="orionhub" />
+<meta property="og:description" content="your one stop shop for tech,creativity and entertainment." />
+<meta property="og:image" content="https://orionhub.netlify.app/oro.png" />
+<meta property="og:url" content="https://orionhub.netlify.app/" />
+<meta property="og:type" content="website" />
+    <title>ORION-HUB</title>
+</head>
+<body>
+<p id="limitor"></p>
+  <header id="header">
+    <h1>ORION Hub</h1>
+    <p>Your one-stop shop for tech, creativity, and entertainment</p>
+  </header>
+
+  <nav>
+    <a href="#accessories">Accessories</a>
+    <a href="#electronics">Electronics</a>
+    <a href="#services">Services</a>
+    <a href="#media">Media</a>
+    <a href="#contact">Contact</a>
+    <a href="news.html">News</a>
+    <a href="https://bitrecoder.netlify.app">record</a>
+      <a href="https://aplica.netlify.app">documentation</a>
+    <a href="monitor.html">admins</a>
+
+  </nav>
+
+  <div class="section" id="accessories">
+    <h2>👜 Accessories</h2>
+    <img src="access.webp" alt="Accessories" class="section-image">
+    <p>From stylish phone cases to high-quality headphones, we have everything you need to
+    personalize and protect your devices.</p>
+    <button class="btn" id="accessories">Shop Now</button>
+  </div>
+
+  <div class="section" id="electronics">
+    <h2>📺 Electronics</h2>
+    <img src="electronics.webp" alt="Electronics" class="section-image">
+    <p>Shop top-brand televisions, lighting solutions, and smart home gadgets.</p>
+    <button class="btn" id="electronics">Explore Electronics</button>
+  </div>
+
+  <div class="section" id="services">
+    <h2>🔧 Services</h2>
+    <ul>
+      <li>Device Repairing (Mobiles, TVs, Gadgets)</li>
+      <li>Printing (Documents, Posters, Custom Prints)</li>
+      <li>Photography: Passport Photos & Mobile Photoshoots</li>
+    </ul>
+    <button class="btn" id="services">Learn More</button>
+  </div>
+
+  <div class="section" id="media" style="background-color:#2c3e50;color:white;">
+    <h2 style="color: white;">🎬 Entertainment</h2><br>
+    <img src="movies.jfif" id="movies" alt="movies" class="section-image" />
+    <p>explore our updated movie library for all kinds of movies </p>
+    <button class="btn" id="movie">check in</button><br><br>
+    <img src="music.jfif" alt="music" class="section-image" /><br><br>
+    <p>Explore our collection of movies, music albums, and streaming accessories.</p>
+    <button class="btn" id="music" >stream live</button>
+  </div>
+  <div class="section" id="contact">
+    <h2>📞 Contact Us</h2>
+    <p>For inquiries, support, or feedback, please reach out to us at:</p>
+    <ul>
+      <li>Email: <a href="mailto:support@orionhub.gmail.com">support@orionhub.gmail.com</a></li>
+      <li>Phone: <a href="tel:+256744759181">+256744759181</a></li>
+      <li>Address:St.Mark,Mutungo-Biina, Kampala, Uganda</li>
+    </ul>
+    </div>
+
+
+
+  <footer>
+    <p>&copy; ORION All rights reserved.</p>
+    <p>Follow us on social media for updates!</p>
+    <p class="newsletter">
+      <input type="email" placeholder="email" class="mail">
+      <button class="newsletter-button">subscribe</button> 
+    </p>
+    <ul><br>
+      <span class="material-icons" id="shareBtn">share</span>
+      <span class="material-icons" id="mail">mail</span>
+      <span class="material-icons" id="call">call</span>
+      <span class="material-icons" id="location">location_on</span>
+      <span class="material-icons" id="facebook">facebook</span>
+    </ul>
+</footer>
+<script>
+  document.getElementById('accessories').addEventListener('click', function() {
+    const overlay=document.createElement('div')
+    overlay.className='overlay';
+    overlay.innerText='fetching resourcs...';
+    overlay.style.color='white';
+    overlay.style.padding='10px';
+    const loader=document.createElement('div');
+    const load=document.createElement('div');
+    load.className='load';
+    load.innerText='orion';
+    loader.appendChild(load)
+    loader.className='loader';
+    overlay.appendChild(loader)
+    document.body.appendChild(overlay)
+    setTimeout(() => {
+      show()
+    }, 3000);function show(){
+      window.location.href = 'accessories.html';
+    }
+  });
+  document.getElementById('electronics').addEventListener('click', function() {
+    window.location.href = 'electronics.html';
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', async () => {
+  const shareData = {
+    title: 'Check this out!',
+    text: 'Here’s something interesting for you:\n\nare you not tired of searching for the best tech and entertainment products? Look no further than ORION Hub! We offer a wide range of accessories, electronics, services, and media to meet all your needs.',
+    url: 'https://orionhub.netlify.app/index.html'
+};
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      console.log('Link shared successfully');
+} catch (err) {
+      console.error('Error sharing:', err);
+}
+} else {
+    alert('Sharing not supported on this browser. Try copying the link manually.');
+}
+});
+
+document.getElementById('mail').addEventListener('click', function() {
+  window.location.href = 'mailto:"support@orionhub.gmail.com"?subject=Inquiry&body=Hello, I would like to know more about your products and services.';
+});
+
+document.getElementById('call').addEventListener('click', function() {
+  window.location.href = 'tel:+256744759181';
+});
+
+document.getElementById('location').addEventListener('click', function() {
+  window.location.href = 'https://www.google.com/maps?q=ORION+Hub,+Kampala,+Uganda&ll=0.347596,32.582520&z=17';
+});
+
+document.getElementById('services').addEventListener('click',() => {
+  window.location.href='services.html';
+});
+document.getElementById('music').addEventListener('click', () => {
+  window.location.href='music.html';
+});
+document.getElementById('movie').addEventListener('click', () => {
+  window.location.href='https://orionmkt.netlify.app/';
+});
+
+  </script>
+    <script src="script.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
