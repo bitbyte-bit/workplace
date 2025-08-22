@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css"/>
+    <title>services</title>
+</head>
+<body>
+    <header>
+        <h1>SERVICES</h1>
+    </header>
+    
+    <div class="accessories1">
+        <div class="accessories-img">
+            <img src="repair.jfif" alt="movie" class="accessories-image" />
+            We offer repairing services at nearly free cost,both indoors and at our distributed workplaces all over Uganda.With experienced and skilled <a class="external-link">technicians</a>,we repair each and every device from micro to industrial. 
+
+            <p class="btn" id="requestCall">request call</p>
+        </div>
+
+        <div class="accessories-img2">
+            <img src="photography.jfif" alt="music" class="accessories-image" />
+            With upgraded and classic tools,we have managed to deliver photography services to our 
+            dear clients without fail.
+            <p><strong>Photography services are provided ;</strong></p>
+            <ul>
+            <li class="line">Indoors<br></li>
+            <li class="line">mobile photoshoot</li>
+            <li class="line">parties </li>
+            <div class="description">
+                <p>Wish to order a camera service?</p>
+                <p id="order"></p>
+            </div>
+            </ul>
+        </div><br><br>
+        
+        <div class="accessories-img">
+            <img src="print.jfif" alt="music" class="accessories-image" />
+            <p class="btn" id="print">Printing</p>
+        </div>
+    </div>
+    <button class="home" id="home">back home</button>
+    <script src="script.js"></script>
+    <footer>
+        <p>&copy; ORION All rights reserved.</p>
+    <p>Follow us on social media for updates!</p>
+    <p class="newsletter">
+      <input type="email" placeholder="email" class="mail">
+      <button class="newsletter-button">subscribe</button> 
+    </p>
+    <ul><br>
+      <span class="material-icons" id="shareBtn">share</span>
+      <span class="material-icons" id="mail">mail</span>
+      <span class="material-icons" id="call">call</span>
+      <span class="material-icons" id="location">location_on</span>
+      <span class="material-icons" id="facebook">facebook</span>
+    </ul>
+    </footer>
+    <script>
+        document.getElementById('home').addEventListener('click',() => {
+            window.location.href='index.html';
+        });
+        document.getElementById('requestCall').addEventListener('click',() => {
+            window.location.href='tel:+256756401268';
+        });
+        const order = document.getElementById('order');
+        order.className='form';
+        order.name='form';
+        order.action='https://umarusersdash.netlify.app/forms.html';
+        const user=document.createElement('input');
+        user.placeholder='Your name';
+        user.type='text';
+        user.required=true;
+        const phone=document.createElement('input');
+        phone.placeholder='Phone';
+        phone.type='tel';
+        phone.required=true;
+        const Message=document.createElement('textarea');
+        Message.placeholder='Give a little description of the service you are looking for.....';
+        Message.required=true;
+        const btn=document.createElement('button');
+        btn.className='submit';
+        btn.type='submit';
+        btn.innerText='Order Camera';
+
+        order.appendChild(user)
+        order.appendChild(phone)
+        order.appendChild(Message)
+        order.appendChild(btn)
+
+        //printing 
+        document.getElementById('print').addEventListener('click', ()=> {
+            const overlay =document.createElement('div');
+            overlay.className='overlay';
+            //PRINTIN PROPERTIES
+            const printing =document.createElement('div');
+            printing.className='printing';
+
+            const printHeader=document.createElement('p')
+            printHeader.className='print-head';
+            printHeader.innerText='send a print command';
+
+            const file=document.createElement('input');
+            file.type='file';
+            file.id='file';
+            file.className='input';
+
+            const fileInfo =document.createElement('textarea');
+            fileInfo.placeholder='describe how you want your printed work to appear..';
+            fileInfo.className='input';
+
+            const print =document.createElement('button');
+            print.type='submit';
+            print.className='submit';
+            print.innerText='send';
+             
+            const quit =document.createElement('button');
+            quit.className='submit';
+            quit.style.backgroundColor='red';
+            quit.innerText='quit';
+            quit.addEventListener('click',() => {
+                printing.remove();
+                overlay.remove();
+            });
+
+            printing.appendChild(printHeader)
+            printing.appendChild(file)
+            printing.appendChild(fileInfo)
+            printing.appendChild(print)
+            printing.appendChild(quit)
+            overlay.appendChild(printing)
+            document.body.appendChild(overlay)
+        });
+    </script>
+</body>
+</html>
