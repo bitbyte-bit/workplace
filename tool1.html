@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ORION TOOLS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+  <div class="nav">
+    <h1> Savings</h1>
+    <div class="actions">
+      <button id="exportBtn">📤 Export Record</button>
+    </div>
+  </div>
+  
+  <form id="depositForm">
+    <input type="text" id="bankName" placeholder="Bank Name" required>
+  		<input type="number" id="amount" placeholder="Deposit Amount" required>
+    <button type="submit">Add Deposit</button>
+  </form>
+
+  <div class="totals">
+    <h3>🏦 Total Deposits by Bank</h3>
+    <div id="bankTotals"></div>
+    <div class="total-all" id="totalAll"></div>
+  </div>
+
+  <div class="deposits">
+    <h3>📜 All Deposits (Newest First)</h3>
+    <div id="depositList"></div>
+  </div>
+  <div id="sideMenu">
+    <ul>
+      <li onclick="toggleTheme()">🌗 Change Theme</li>
+      <li onclick="editPassword()">🔐 Edit Password</li>
+      <li onclick="adjustTextSize()">🔠 Edit Text Size</li>
+      <li onclick="toggleTotals()">💳 Hide/Show Total Incomes</li>
+    </ul>
+  </div>
+  <script src="script.js"></script>
+  <button class="back-button" onclick="window.location.href='index.html'">Back to Home</button>
+</body>
+</html>
