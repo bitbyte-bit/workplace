@@ -206,21 +206,7 @@
         });
     });
 
-    // Scroll to hash on load and set meta for sharing
-    if (window.location.hash) {
-        const element = document.querySelector(window.location.hash);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-            const img = element.querySelector('img');
-            if (img) {
-                // Set Open Graph meta for sharing
-                setMetaTag('og:image', img.src);
-                setMetaTag('og:title', `Check out ${element.querySelector('.share-image').getAttribute('data-product')} on ORION Hub`);
-                setMetaTag('og:description', `Amazing deal: ${element.querySelector('.share-image').getAttribute('data-product')} for ${element.querySelector('.share-image').getAttribute('data-price')}. Shop now on ORION Hub!`);
-                setMetaTag('og:url', window.location.href);
-            }
-        }
-    }
+    
 
     function setMetaTag(property, content) {
         let meta = document.querySelector(`meta[property="${property}"]`);
