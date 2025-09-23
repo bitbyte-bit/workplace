@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <title>Electronics - ORION Hub</title>
+</head>
+<body>
+<div class="mobile-container">
+    <header id="header">
+        <div class="header-content">
+            <div>
+                <h1>ORION Hub</h1>
+                <p>Electronics</p>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <a href="#tv">TVs</a>
+        <a href="#lighting">Lighting</a>
+        <a href="#gadgets">Gadgets</a>
+    </nav>
+
+    <div class="main-sections">
+        <div class="section" id="electronics">
+            <h2>📺 Electronics</h2>
+            <p>Explore our range of electronics including televisions, lighting, and smart home devices.</p>
+            <ul class="electronics" id="electronics-list"></ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; ORION All rights reserved.</p>
+        <button class="btn" id="btn">Back to Home</button>
+    </footer>
+</div>
+
+<script>
+    document.getElementById('btn').addEventListener('click', function() {
+        window.location.href = 'index.html';
+    });
+
+    // Electronics items array
+    const electronicsItems = [
+        {
+            id: 'product-tv',
+            img: 'ledtv.avif',
+            alt: 'Electronics',
+            product: 'Smart LED TV',
+            price: 'UGX 360,000'
+        },
+        {
+            id: 'product-lighting',
+            img: 'electronics.webp',
+            alt: 'Lighting',
+            product: 'LED Lighting Solutions',
+            price: 'UGX 50,000'
+        },
+        {
+            id: 'product-gadgets',
+            img: 'gadget.jpg',
+            alt: 'Smart Home',
+            product: 'Smart Home Gadgets',
+            price: 'UGX 270,000'
+        }
+    ];
+
+    // Render electronics items
+    const electronicsList = document.getElementById('electronics-list');
+    electronicsItems.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'electronics-item';
+        li.id = item.id;
+        li.innerHTML = `
+            <img src="${item.img}" alt="${item.alt}" class="section-image share-image" data-product="${item.product}" data-price="${item.price}">
+            ${item.product}<br>
+            <span class="electronics-price">${item.price}</span><br>
+            <div class="button-group">
+                <button class="btn buy-btn">Buy Now</button>
+                <span class="material-icons share-item" data-product="${item.product}" data-price="${item.price}">share</span>
+            </div>
+        `;
+        electronicsList.appendChild(li);
+    });
+
+    // Share buttons for individual products
+    document.querySelectorAll('.share-item, .share-image').forEach(shareBtn => {
+        shareBtn.addEventListener('click', async () => {
+            const product = shareBtn.getAttribute('data-product');
+            const price = shareBtn.getAttribute('data-price');
+            const id = shareBtn.closest('li').id;
+            const imgSrc = shareBtn.closest('li').querySelector('img').src;
+            const shareData = {
+                title: `Check out ${product} on ORION Hub`,
+                text: `Amazing deal: ${product} for ${price}. Image: ${imgSrc} Shop now on ORION Hub!`,
+                url: window.location.href + '#' + id
+            };
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    console.log('Product shared successfully');
+                } catch (err) {
+                    console.error('Error sharing:', err);
+                }
+            } else {
+                alert('Sharing not supported on this browser. Copy the link: ' + window.location.href + '#' + id + ' Image: ' + imgSrc);
+            }
+        });
+    });
+
+    // Scroll to hash on load and set meta for sharing
+    if (window.location.hash) {
+        const element = document.querySelector(window.location.hash);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+            const img = element.querySelector('img');
+            if (img) {
+                // Set Open Graph meta for sharing
+                setMetaTag('og:image', img.src);
+                setMetaTag('og:title', `Check out ${element.querySelector('.share-image').getAttribute('data-product')} on ORION Hub`);
+                setMetaTag('og:description', `Amazing deal: ${element.querySelector('.share-image').getAttribute('data-product')} for ${element.querySelector('.share-image').getAttribute('data-price')}. Shop now on ORION Hub!`);
+                setMetaTag('og:url', window.location.href);
+            }
+        }
+    }
+
+    function setMetaTag(property, content) {
+        let meta = document.querySelector(`meta[property="${property}"]`);
+        if (!meta) {
+            meta = document.createElement('meta');
+            meta.setAttribute('property', property);
+            document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+    }
+
+    // Buy buttons: send image and details as WhatsApp text message
+    document.querySelectorAll('.buy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const li = this.closest('li');
+            const product = li.querySelector('.share-image').getAttribute('data-product');
+            const price = li.querySelector('.share-image').getAttribute('data-price');
+            const imgSrc = li.querySelector('img').src;
+            const message = `Product: ${product}\nPrice: ${price}\nImage: ${imgSrc}`;
+            const whatsappURL = `https://wa.me/256744759181?text=${encodeURIComponent(message)}`;
+            window.open(whatsappURL, '_blank');
+        });
+    });
+</script>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <title>ORION Tools - Savings</title>
+</head>
+<body>
+<div class="mobile-container">
+  <header id="header">
+    <div class="header-content">
+      <div>
+        <h1>ORION Hub</h1>
+        <p>Tools - Savings Tracker</p>
+      </div>
+      <div class="header-buttons">
+        <button id="exportBtn" class="btn">📤 Export Record</button>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <a href="#add">Add Deposit</a>
+    <a href="#totals">Totals</a>
+    <a href="#deposits">Deposits</a>
+    <a href="#settings">Settings</a>
+  </nav>
+
+  <div class="main-sections">
+    <div class="section" id="tools">
+      <h2>💰 Savings Tracker</h2>
+
+      <form id="depositForm">
+        <input type="text" id="bankName" placeholder="Bank Name" required>
+        <input type="number" id="amount" placeholder="Deposit Amount" required>
+        <button type="submit" class="btn">Add Deposit</button>
+      </form>
+
+      <div class="totals">
+        <h3>🏦 Total Deposits by Bank</h3>
+        <div id="bankTotals"></div>
+        <div class="total-all" id="totalAll"></div>
+      </div>
+
+      <div class="deposits">
+        <h3>📜 All Deposits (Newest First)</h3>
+        <div id="depositList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sideMenu">
+    <ul>
+      <li onclick="toggleTheme()">🌗 Change Theme</li>
+      <li onclick="editPassword()">🔐 Edit Password</li>
+      <li onclick="adjustTextSize()">🔠 Edit Text Size</li>
+      <li onclick="toggleTotals()">💳 Hide/Show Total Incomes</li>
+    </ul>
+  </div>
+
+  <footer>
+    <p>&copy; ORION All rights reserved.</p>
+    <button class="btn" onclick="window.location.href='index.html'">Back to Home</button>
+  </footer>
+</div>
+
+<script>
+  // Add loader for form submit
+  document.getElementById('depositForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerText = 'Adding deposit...';
+    overlay.style.color = 'white';
+    overlay.style.padding = '10px';
+    const loader = document.createElement('div');
+    const load = document.createElement('div');
+    load.className = 'load';
+    load.innerText = 'orion';
+    loader.appendChild(load);
+    loader.className = 'loader';
+    overlay.appendChild(loader);
+    document.body.appendChild(overlay);
+    setTimeout(() => {
+      overlay.remove();
+      // Proceed with form submission logic in script.js
+    }, 2000);
+  });
+</script>
+<script src="script.js"></script>
+</body>
+</html>

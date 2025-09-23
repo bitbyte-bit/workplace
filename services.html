@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <title>Services - ORION Hub</title>
+</head>
+<body>
+<div class="mobile-container">
+    <header id="header">
+        <div class="header-content">
+            <div>
+                <h1>ORION Hub</h1>
+                <p>Services</p>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <a href="#repair">Repair</a>
+        <a href="#photography">Photography</a>
+        <a href="#printing">Printing</a>
+    </nav>
+
+    <div class="main-sections">
+        <div class="section" id="services">
+            <h2>🔧 Services</h2>
+
+            <div class="accessories1">
+                <div class="accessories-img">
+                    <img src="repair.jfif" alt="Repair" class="section-image" />
+                    We offer repairing services at nearly free cost, both indoors and at our distributed workplaces all over Uganda. With experienced and skilled technicians, we repair each and every device from micro to industrial.
+                    <p class="btn" id="requestCall">Request Call</p>
+                </div>
+
+                <div class="accessories-img2">
+                    <img src="photography.jfif" alt="Photography" class="section-image" />
+                    With upgraded and classic tools, we have managed to deliver photography services to our dear clients without fail.
+                    <p><strong>Photography services provided:</strong></p>
+                    <ul>
+                        <li class="line">Indoors</li>
+                        <li class="line">Mobile photoshoot</li>
+                        <li class="line">Parties</li>
+                    </ul>
+                    <div class="description">
+                        <p>Wish to order a camera service?</p>
+                        <p id="order"></p>
+                    </div>
+                </div>
+
+                <div class="accessories-img">
+                    <img src="print.jfif" alt="Printing" class="section-image" />
+                    <p class="btn" id="print">Printing</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; ORION All rights reserved.</p>
+        <p>Follow us on social media for updates!</p>
+        <form class="newsletter" id="newsletterForm" action="https://formspree.io/f/xdklkqye" method="POST">
+            <input type="email" name="email" placeholder="email" class="mail" required>
+            <button type="submit" class="newsletter-button" id="subscribeBtn">subscribe</button>
+        </form>
+        <ul>
+            <span class="material-icons" id="mail">mail</span>
+            <span class="material-icons" id="call">call</span>
+            <span class="material-icons" id="location">location_on</span>
+            <span class="material-icons" id="facebook">facebook</span>
+        </ul>
+        <button class="btn" id="home">Back Home</button>
+    </footer>
+</div>
+<script>
+    document.getElementById('home').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+
+    document.getElementById('requestCall').addEventListener('click', () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'overlay';
+        overlay.innerText = 'Calling...';
+        overlay.style.color = 'white';
+        overlay.style.padding = '10px';
+        const loader = document.createElement('div');
+        const load = document.createElement('div');
+        load.className = 'load';
+        load.innerText = 'orion';
+        loader.appendChild(load);
+        loader.className = 'loader';
+        overlay.appendChild(loader);
+        document.body.appendChild(overlay);
+        setTimeout(() => {
+            window.location.href = 'tel:+256756401268';
+            overlay.remove();
+        }, 2000);
+    });
+
+    const order = document.getElementById('order');
+    order.className = 'form';
+    const user = document.createElement('input');
+    user.placeholder = 'Your name';
+    user.type = 'text';
+    user.required = true;
+    const phone = document.createElement('input');
+    phone.placeholder = 'Phone';
+    phone.type = 'tel';
+    phone.required = true;
+    const Message = document.createElement('textarea');
+    Message.placeholder = 'Give a little description of the service you are looking for.....';
+    Message.required = true;
+    const btn = document.createElement('button');
+    btn.className = 'submit';
+    btn.type = 'button'; // Change to button to prevent form submission
+    btn.innerText = 'Order Camera';
+
+    order.appendChild(user);
+    order.appendChild(phone);
+    order.appendChild(Message);
+    order.appendChild(btn);
+
+    // Add event listener for form submission
+    btn.addEventListener('click', () => {
+        const name = user.value.trim();
+        const phoneValue = phone.value.trim();
+        const message = Message.value.trim();
+
+        if (!name || !phoneValue || !message) {
+            alert('Please fill in all fields.');
+            return;
+        }
+
+        // Validate phone number (basic check)
+        if (!/^\+?\d{10,15}$/.test(phoneValue)) {
+            alert('Please enter a valid phone number.');
+            return;
+        }
+
+        // Construct WhatsApp message
+        const whatsappMessage = `Hello ORION, new camera service request:\nName: ${name}\nPhone: ${phoneValue}\nMessage: ${message}`;
+
+        // Encode and create WhatsApp URL
+        const whatsappURL = `https://wa.me/256755759181?text=${encodeURIComponent(whatsappMessage)}`;
+
+        // Open WhatsApp
+        window.open(whatsappURL, '_blank');
+
+        // Clear form
+        user.value = '';
+        phone.value = '';
+        Message.value = '';
+    });
+
+    // Printing
+    document.getElementById('print').addEventListener('click', () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'overlay';
+        const printing = document.createElement('div');
+        printing.className = 'printing';
+
+        const printHeader = document.createElement('p');
+        printHeader.className = 'print-head';
+        printHeader.innerText = 'Send a print command';
+
+        const file = document.createElement('input');
+        file.type = 'file';
+        file.id = 'file';
+        file.className = 'input';
+
+        const fileInfo = document.createElement('textarea');
+        fileInfo.placeholder = 'Describe how you want your printed work to appear..';
+        fileInfo.className = 'input';
+
+        const printBtn = document.createElement('button');
+        printBtn.type = 'submit';
+        printBtn.className = 'submit';
+        printBtn.innerText = 'Send';
+
+        const quit = document.createElement('button');
+        quit.className = 'submit';
+        quit.style.backgroundColor = 'red';
+        quit.innerText = 'Quit';
+        quit.addEventListener('click', () => {
+            printing.remove();
+            overlay.remove();
+        });
+
+        printing.appendChild(printHeader);
+        printing.appendChild(file);
+        printing.appendChild(fileInfo);
+        printing.appendChild(printBtn);
+        printing.appendChild(quit);
+        overlay.appendChild(printing);
+        document.body.appendChild(overlay);
+    });
+
+    // Newsletter subscription
+    let isSubscribed = false;
+    document.getElementById('newsletterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!isSubscribed) {
+            const formData = new FormData(this);
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    alert('Thank you for subscribing!');
+                    isSubscribed = true;
+                    const btn = document.getElementById('subscribeBtn');
+                    btn.textContent = 'Unsubscribe';
+                    btn.classList.add('unsubscribe');
+                } else {
+                    alert('There was an error. Please try again.');
+                }
+            }).catch(error => {
+                alert('There was an error. Please try again.');
+            });
+        } else {
+            isSubscribed = false;
+            const btn = document.getElementById('subscribeBtn');
+            btn.textContent = 'Subscribe';
+            btn.classList.remove('unsubscribe');
+            alert('You have unsubscribed.');
+        }
+    });
+</script>
+<script src="script.js"></script>
+</body>
+</html>
