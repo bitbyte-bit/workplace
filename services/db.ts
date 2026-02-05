@@ -4,20 +4,25 @@ const API_BASE = '/api';
 
 // Helper function for API calls
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(error.error || 'Request failed');
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `Request failed: ${response.status}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error(`API call failed: ${endpoint}`, error);
+    throw error;
   }
-  
-  return response.json();
 }
 
 // Sales functions
@@ -60,14 +65,17 @@ export async function updateStockItem(item: StockItem) {
 }
 
 export async function updateStockQuantity(name: string, quantityChange: number) {
-  // Get all stock and find the item by name
-  const stock = await fetchAllStock();
-  const item = stock.find(s => s.name.toLowerCase() === name.toLowerCase());
-  if (item) {
-    await updateStockItem({
-      ...item,
-      quantity: item.quantity + quantityChange,
-    });
+  try {
+    const stock = await fetchAllStock();
+    const item = stock.find(s => s.name.toLowerCase() === name.toLowerCase());
+    if (item) {
+      await updateStockItem({
+        ...item,
+        quantity: item.quantity + quantityChange,
+      });
+    }
+  } catch (error) {
+    console.warn('Failed to update stock quantity:', error);
   }
 }
 
@@ -97,14 +105,17 @@ export async function updateDebtItem(debt: Debt) {
 }
 
 export async function toggleDebtStatus(id: string) {
-  // Get the debt first
-  const debts = await fetchAllDebts();
-  const debt = debts.find(d => d.id === id);
-  if (debt) {
-    await updateDebtItem({
-      ...debt,
-      isPaid: !debt.isPaid,
-    });
+  try {
+    const debts = await fetchAllDebts();
+    const debt = debts.find(d => d.id === id);
+    if (debt) {
+      await updateDebtItem({
+        ...debt,
+        isPaid: !debt.isPaid,
+      });
+    }
+  } catch (error) {
+    console.warn('Failed to toggle debt status:', error);
   }
 }
 
@@ -147,7 +158,8 @@ export function resetDatabase() {
 export async function initDB(): Promise<void> {
   try {
     await fetchSummary();
+    console.log('API connected successfully');
   } catch (error) {
-    console.warn('API not available, using offline mode');
+    console.warn('API not available:', error);
   }
 }
