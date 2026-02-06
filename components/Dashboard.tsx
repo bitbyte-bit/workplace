@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BusinessData } from '../types';
 import { getBusinessInsights } from '../services/geminiService';
-import { SparkleIcon, BellIcon, ClockIcon, TrendingIcon, LockIcon, UnlockIcon, ExchangeIcon, AlertCircleIcon, CheckCircleIcon } from './Icons';
+import { SparkleIcon, BellIcon, ClockIcon, TrendingIcon, LockIcon, UnlockIcon, ExchangeIcon, AlertCircleIcon, CheckCircleIcon, PackageIcon, SalesIcon } from './Icons';
 import { isExpenseDueSoon } from '../utils/expenseUtils';
 
 interface Props {
@@ -54,6 +54,20 @@ const Dashboard: React.FC<Props> = ({
 
   const lowStockItems = useMemo(() => data.stock.filter(item => item.quantity <= (item.lowStockThreshold || 5)), [data.stock]);
   const upcomingExpenses = useMemo(() => data.expenses.filter(e => e.frequency !== 'none' && isExpenseDueSoon(e)), [data.expenses]);
+
+  // Analytics: Total items in stock
+  const totalStockItems = useMemo(() => {
+    return data.stock.reduce((acc, item) => acc + item.quantity, 0);
+  }, [data.stock]);
+
+  // Analytics: Items sold this month
+  const itemsSoldThisMonth = useMemo(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    return data.sales
+      .filter(sale => sale.date >= startOfMonth)
+      .reduce((acc, sale) => acc + sale.quantity, 0);
+  }, [data.sales]);
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -145,6 +159,13 @@ const Dashboard: React.FC<Props> = ({
         <StatCard title="Net Profit" value={`${currency}${netProfit.toLocaleString()}`} color={netProfit >= 0 ? 'green' : 'red'} />
         <StatCard title="Margin" value={`${profitMargin.toFixed(1)}%`} color={profitMargin > 15 ? 'green' : 'amber'} />
       </div>
+
+      {isUnlocked && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard title="Stock Items" value={totalStockItems.toLocaleString()} icon={<PackageIcon className="text-emerald-500" />} color="emerald" />
+          <StatCard title="Sold This Month" value={itemsSoldThisMonth.toLocaleString()} icon={<SalesIcon className="text-violet-500" />} color="violet" />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -290,6 +311,8 @@ const StatCard = ({ title, value, color = "blue", icon }: any) => {
     red: 'bg-white text-red-600',
     green: 'bg-white text-emerald-600',
     amber: 'bg-white text-amber-600',
+    emerald: 'bg-white text-emerald-700',
+    violet: 'bg-white text-violet-600',
   };
   return (
     <div className={`p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-slate-200/30 ${styles[color]} relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}>

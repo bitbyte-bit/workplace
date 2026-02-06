@@ -61,7 +61,7 @@ const Reports: React.FC<Props> = ({ data, currency }) => {
     const totalExpenses = data.expenses.reduce((a, e) => a + e.amount, 0);
 
     doc.setFontSize(22);
-    doc.text("ZION PROFESSIONAL REPORT", 105, 20, { align: 'center' });
+    doc.text("ZION BALANCE SHEET", 105, 20, { align: 'center' });
     doc.setFontSize(10);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
 
@@ -87,7 +87,7 @@ const Reports: React.FC<Props> = ({ data, currency }) => {
           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Master Performance Review</p>
         </div>
         <button onClick={generatePDF} className="w-full md:w-auto bg-slate-900 text-white text-[10px] font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-2 shadow-2xl shadow-slate-400 hover:scale-105 active:scale-95 transition-all tracking-[0.2em] uppercase">
-          <ReportsIcon className="w-4 h-4" /> Export Master Ledger
+          <ReportsIcon className="w-4 h-4" /> Extract balance sheet
         </button>
       </div>
 

@@ -21,40 +21,49 @@ import {
   ClockIcon
 } from './components/Icons';
 
+interface SearchResult {
+  id: string;
+  name: string;
+  type: 'stock' | 'sale' | 'debt' | 'expense';
+  quantity?: number;
+  amount?: number;
+}
+
 // Error boundary to catch rendering errors
-class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
+  useEffect(() => {
+    const handleError = (error: Error) => {
+      setError(error);
+      setHasError(true);
+    };
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Render error:', error, errorInfo);
-  }
+    // You can add more error handling here if needed
+    return () => {
+      // cleanup
+    };
+  }, []);
 
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex h-screen items-center justify-center bg-slate-50 p-6">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-            <p className="text-slate-600 mb-4">{this.state.error?.message || 'Unknown error'}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Reload Page
-            </button>
-          </div>
+  if (hasError) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
+          <p className="text-slate-600 mb-4">{error?.message || 'Unknown error'}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Reload Page
+          </button>
         </div>
-      );
-    }
-    return this.props.children;
+      </div>
+    );
   }
+
+  return children;
 }
 
 const App: React.FC = () => {
@@ -127,6 +136,82 @@ const App: React.FC = () => {
   const filteredStock = useMemo(() => stock.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.lastUpdated - a.lastUpdated), [stock, searchQuery]);
   const filteredDebts = useMemo(() => debts.filter(d => d.debtorName.toLowerCase().includes(searchQuery.toLowerCase()) || d.phoneNumber.includes(searchQuery)).sort((a, b) => b.date - a.date), [debts, searchQuery]);
   const filteredExpenses = useMemo(() => expenses.filter(e => e.category.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), [expenses, searchQuery]);
+
+  // Build search results for overlay
+  const searchResults: SearchResult[] = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const results: SearchResult[] = [];
+    
+    // Stock items
+    stock.forEach(item => {
+      if (item.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        results.push({
+          id: item.id,
+          name: item.name,
+          type: 'stock',
+          quantity: item.quantity
+        });
+      }
+    });
+    
+    // Sales
+    sales.forEach(sale => {
+      if (sale.itemName.toLowerCase().includes(searchQuery.toLowerCase())) {
+        results.push({
+          id: sale.id,
+          name: sale.itemName,
+          type: 'sale',
+          quantity: sale.quantity,
+          amount: sale.price * sale.quantity
+        });
+      }
+    });
+    
+    // Debts
+    debts.forEach(debt => {
+      if (debt.debtorName.toLowerCase().includes(searchQuery.toLowerCase())) {
+        results.push({
+          id: debt.id,
+          name: debt.debtorName,
+          type: 'debt',
+          amount: debt.amount
+        });
+      }
+    });
+    
+    // Expenses
+    expenses.forEach(expense => {
+      if (expense.category.toLowerCase().includes(searchQuery.toLowerCase())) {
+        results.push({
+          id: expense.id,
+          name: expense.category,
+          type: 'expense',
+          amount: expense.amount
+        });
+      }
+    });
+    
+    return results;
+  }, [searchQuery, stock, sales, debts, expenses]);
+
+  const handleSearchSelect = (result: SearchResult) => {
+    // Navigate to appropriate tab based on result type
+    switch (result.type) {
+      case 'stock':
+        setActiveTab('stock');
+        break;
+      case 'sale':
+        setActiveTab('sales');
+        break;
+      case 'debt':
+        setActiveTab('debts');
+        break;
+      case 'expense':
+        setActiveTab('expenses');
+        break;
+    }
+    setSearchQuery('');
+  };
 
   const handleSale = async (newSale: Sale) => {
     await db.saveSale(newSale);
@@ -256,7 +341,12 @@ const App: React.FC = () => {
       <header className="bg-white/80 backdrop-blur-md border-b px-6 py-4 sticky top-0 z-40 shadow-sm flex items-center justify-between">
         <h2 className="text-xl font-black text-slate-800 capitalize md:hidden">Zion</h2>
         <div className="flex-1 max-w-xl md:mx-auto">
-          <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          <SearchBar 
+            value={searchQuery} 
+            onChange={setSearchQuery} 
+            results={searchResults}
+            onSelect={handleSearchSelect}
+          />
         </div>
         <div className="md:w-10"></div>
       </header>
