@@ -144,7 +144,7 @@ async function initDatabase() {
   if (adminCheck.length === 0) {
     db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
       'admin', 'zionpro@gmail.com', 'zionpro', 'System Administrator', 'ZION Pro', '', 
-      'admin', 'active', 0, null, null, null, Date.now(), null, null
+      'admin', 'active', 0, null, null, null, Date.now(), null
     ]);
     console.log('✅ Admin account created: zionpro@gmail.com / zionpro');
   }

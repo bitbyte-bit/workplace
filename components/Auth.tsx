@@ -5,13 +5,12 @@ import { NotificationType } from './Notification';
 
 interface AuthProps {
   onLogin: (user: User) => void;
-  onAdminLogin?: (adminId: string) => void;
   showNotification: (message: string, type?: NotificationType) => void;
 }
 
-type AuthMode = 'login' | 'register' | 'admin';
+type AuthMode = 'login' | 'register';
 
-export default function Auth({ onLogin, onAdminLogin, showNotification }: AuthProps) {
+export default function Auth({ onLogin, showNotification }: AuthProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,30 +33,8 @@ export default function Auth({ onLogin, onAdminLogin, showNotification }: AuthPr
       const { user } = await db.loginUser(loginEmail, loginPassword);
       localStorage.setItem('zion_user', JSON.stringify(user));
       onLogin(user);
-      showNotification('Welcome back, ' + user.fullName + '!', 'success');
     } catch (err: any) {
       setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    
-    try {
-      const { user: adminUser } = await db.loginAdmin(loginEmail, loginPassword);
-      localStorage.setItem('zion_user', JSON.stringify(adminUser));
-      localStorage.setItem('zion_admin', adminUser.id);
-      onLogin(adminUser);
-      if (onAdminLogin) {
-        onAdminLogin(adminUser.id);
-      }
-      showNotification('Welcome, Administrator!', 'success');
-    } catch (err: any) {
-      setError(err.message || 'Admin login failed');
     } finally {
       setLoading(false);
     }
@@ -110,17 +87,10 @@ export default function Auth({ onLogin, onAdminLogin, showNotification }: AuthPr
           </button>
           <button
             type="button"
-            onClick={() => { setMode('admin'); setError(''); }}
-            className={'flex-1 py-3 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all ' + (mode === 'admin' ? 'bg-white text-purple-600 shadow-lg' : 'text-white/70 hover:text-white')}
-          >
-            Admin
-          </button>
-          <button
-            type="button"
             onClick={() => { setMode('register'); setError(''); }}
             className={'flex-1 py-3 px-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all ' + (mode === 'register' ? 'bg-white text-blue-600 shadow-lg' : 'text-white/70 hover:text-white')}
           >
-            Create
+            Create Account
           </button>
         </div>
 
@@ -167,53 +137,6 @@ export default function Auth({ onLogin, onAdminLogin, showNotification }: AuthPr
                   className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-200 uppercase tracking-widest hover:bg-blue-700 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Signing in...' : 'Access Dashboard'}
-                </button>
-              </form>
-            </>
-          )}
-
-          {mode === 'admin' && (
-            <>
-              <div className="text-center">
-                <h2 className="text-2xl font-black text-slate-800">Administrator</h2>
-                <p className="text-slate-500 text-sm mt-1">Access the admin control panel</p>
-              </div>
-
-              {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-bold">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleAdminLogin} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Admin Email</label>
-                  <input
-                    type="email"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="Enter admin email"
-                    className="w-full p-4 bg-purple-50 border border-purple-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                  <input
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    placeholder="Enter admin password"
-                    className="w-full p-4 bg-purple-50 border border-purple-100 rounded-2xl outline-none font-bold text-slate-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-purple-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-purple-200 uppercase tracking-widest hover:bg-purple-700 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Authenticating...' : 'Admin Login'}
                 </button>
               </form>
             </>

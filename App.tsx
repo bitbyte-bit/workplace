@@ -275,8 +275,16 @@ const App: React.FC = () => {
     setSearchQuery('');
   };
 
-  const handleLogin = (loggedInUser: User) => {
+  const handleLogin = async (loggedInUser: User) => {
     setUser(loggedInUser);
+    
+    // Check if admin credentials
+    if (loggedInUser.email === 'zionpro@gmail.com' && loggedInUser.role === 'admin') {
+      setAdminId(loggedInUser.id);
+      setShowAdminDashboard(true);
+      localStorage.setItem('zion_admin', loggedInUser.id);
+      showNotification('Welcome, Administrator!', 'success');
+    }
   };
 
   const handleLogout = () => {
