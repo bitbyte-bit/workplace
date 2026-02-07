@@ -361,7 +361,7 @@ app.post('/api/auth/register', (req, res) => {
     }
     checkStmt.free();
     
-    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
       id, email, password, fullName, businessName, phone, 'user', 'active', 0, null, null, null, Date.now(), null
     ]);
     
