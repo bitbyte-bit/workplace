@@ -10,6 +10,8 @@ import Reports from './components/Reports';
 import SearchBar from './components/SearchBar';
 import Notification, { NotificationType } from './components/Notification';
 import WarningStatusBar from './components/WarningStatusBar';
+import ThemeSwitcher from './components/ThemeSwitcher';
+import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
 import { 
   DashboardIcon, 
@@ -48,13 +50,13 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
 
   if (hasError) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 p-6">
+      <div className="flex h-screen items-center justify-center bg-[var(--color-background)] p-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-          <p className="text-slate-600 mb-4">{error?.message || 'Unknown error'}</p>
+          <p className="text-[var(--color-text-muted)] mb-4">{error?.message || 'Unknown error'}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-primary-hover)]"
           >
             Reload Page
           </button>
@@ -300,16 +302,16 @@ const App: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="flex h-screen items-center justify-center bg-white p-6">
+    <div className="flex h-screen items-center justify-center bg-[var(--color-background)] p-6">
       <div className="relative">
-        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-blue-600 tracking-widest">ZION</div>
+        <div className="w-16 h-16 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+        <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-[var(--color-primary)] tracking-widest">ZION</div>
       </div>
     </div>
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 pb-32 md:pb-16 md:pl-64 transition-colors duration-500">
+    <div className="flex flex-col min-h-screen bg-[var(--color-background)] pb-32 md:pb-16 md:pl-64 transition-colors duration-500">
       {notification && (
         <Notification 
           message={notification.message} 
@@ -330,16 +332,16 @@ const App: React.FC = () => {
           <NavButton active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} icon={<ExpenseIcon />} label="Expenses" />
           <NavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<ReportsIcon />} label="Reports" />
         </nav>
-        <div className="mt-auto p-4 bg-slate-50 rounded-2xl border border-slate-100">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Reminder</p>
-          <div className="flex items-center gap-2 text-blue-600 font-bold">
+        <div className="mt-auto p-4 bg-[var(--color-background-alt)] rounded-2xl border border-[var(--color-surface-border)]">
+          <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mb-2">Reminder</p>
+          <div className="flex items-center gap-2 text-[var(--color-primary)] font-bold">
             <ClockIcon className="w-4 h-4" /> {reminderTime}
           </div>
         </div>
       </aside>
 
-      <header className="bg-white/80 backdrop-blur-md border-b px-6 py-4 sticky top-0 z-40 shadow-sm flex items-center justify-between">
-        <h2 className="text-xl font-black text-slate-800 capitalize md:hidden">Zion</h2>
+      <header className="bg-[var(--color-surface)]/80 backdrop-blur-md border-b px-6 py-4 sticky top-0 z-40 shadow-sm flex items-center justify-between">
+        <h2 className="text-xl font-black text-[var(--color-text)] capitalize md:hidden">Zion</h2>
         <div className="flex-1 max-w-xl md:mx-auto">
           <SearchBar 
             value={searchQuery} 
@@ -348,7 +350,9 @@ const App: React.FC = () => {
             onSelect={handleSearchSelect}
           />
         </div>
-        <div className="md:w-10"></div>
+        <div className="flex items-center gap-3">
+          <ThemeSwitcher />
+        </div>
       </header>
 
       <main className="p-4 md:p-10 max-w-7xl mx-auto w-full">
@@ -410,7 +414,7 @@ const App: React.FC = () => {
 
       <WarningStatusBar data={businessData} onNavigate={setActiveTab} />
 
-      <nav className="md:hidden fixed bottom-6 left-6 right-6 bg-white/90 backdrop-blur-lg border border-slate-200 rounded-3xl flex justify-around items-center p-3 z-50 shadow-2xl shadow-blue-500/10">
+      <nav className="md:hidden fixed bottom-6 left-6 right-6 bg-[var(--color-surface)]/90 backdrop-blur-lg border border-[var(--color-surface-border)] rounded-3xl flex justify-around items-center p-3 z-50 shadow-2xl shadow-[var(--color-primary)]/10">
         <MobileNavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<DashboardIcon />} label="Home" />
         <MobileNavButton active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} icon={<SalesIcon />} label="Sales" />
         <MobileNavButton active={activeTab === 'stock'} onClick={() => setActiveTab('stock')} icon={<StockIcon />} label="Stock" />
@@ -421,14 +425,14 @@ const App: React.FC = () => {
 };
 
 const NavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-blue-600 text-white font-bold shadow-xl shadow-blue-200 scale-[1.02]' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}>
+  <button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-[var(--color-primary)] text-[var(--color-text-inverse)] font-bold shadow-xl shadow-[var(--color-primary)]/20 scale-[1.02]' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-background-alt)] hover:text-[var(--color-text)]'}`}>
     <span className="text-xl">{icon}</span>
     <span className="text-sm tracking-tight">{label}</span>
   </button>
 );
 
 const MobileNavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex flex-col items-center py-2 px-3 rounded-2xl transition-all duration-300 ${active ? 'text-blue-600 bg-blue-50/50 scale-110' : 'text-slate-400'}`}>
+  <button onClick={onClick} className={`flex flex-col items-center py-2 px-3 rounded-2xl transition-all duration-300 ${active ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10 scale-110' : 'text-[var(--color-text-muted)]'}`}>
     <span className="text-2xl">{icon}</span>
     <span className="text-[10px] font-black mt-1 uppercase tracking-tighter">{label}</span>
   </button>
@@ -436,8 +440,10 @@ const MobileNavButton = ({ active, onClick, icon, label }: any) => (
 
 export default function AppWrapper() {
   return (
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }

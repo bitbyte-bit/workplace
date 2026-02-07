@@ -4,6 +4,7 @@ import { BusinessData } from '../types';
 import { getBusinessInsights } from '../services/geminiService';
 import { SparkleIcon, BellIcon, ClockIcon, TrendingIcon, LockIcon, UnlockIcon, ExchangeIcon, AlertCircleIcon, CheckCircleIcon, PackageIcon, SalesIcon } from './Icons';
 import { isExpenseDueSoon } from '../utils/expenseUtils';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
   data: BusinessData;
@@ -28,6 +29,7 @@ const EXCHANGE_RATES: Record<string, number> = {
 const Dashboard: React.FC<Props> = ({ 
   data, currentPassword, onChangePassword, currency, onCurrencyChange, reminderTime, onReminderChange 
 }) => {
+  const { colors } = useTheme();
   const [insights, setInsights] = useState<string[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -130,60 +132,64 @@ const Dashboard: React.FC<Props> = ({
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {showPassModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <form onSubmit={handlePassVerify} className="bg-white rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-slate-100 flex flex-col items-center animate-in zoom-in-95 duration-300">
-            <div className="p-4 bg-blue-100 rounded-full mb-4">
-              <LockIcon className="w-8 h-8 text-blue-600" />
+        <div className="fixed inset-0 bg-[var(--color-background)]/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <form onSubmit={handlePassVerify} className="bg-[var(--color-surface)] rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-[var(--color-surface-border)] flex flex-col items-center animate-in zoom-in-95 duration-300">
+            <div className="p-4 rounded-full mb-4" style={{ backgroundColor: `${colors.primary}20` }}>
+              <LockIcon className="w-8 h-8" style={{ color: colors.primary }} />
             </div>
-            <h4 className="text-xl font-black text-slate-800 mb-2">Manager Verification</h4>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center mb-6">Enter your PIN to perform sensitive actions</p>
+            <h4 className="text-xl font-black mb-2" style={{ color: colors.text }}>Manager Verification</h4>
+            <p className="text-xs font-bold uppercase tracking-widest text-center mb-6" style={{ color: colors.textMuted }}>Enter your PIN to perform sensitive actions</p>
             <input 
               autoFocus
               type="password" 
               value={passInput} 
               onChange={e => setPassInput(e.target.value)}
               placeholder="••••"
-              className="w-full text-center text-3xl tracking-[0.5em] p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 mb-6 font-black"
+              className="w-full text-center text-3xl tracking-[0.5em] p-4 bg-[var(--color-background-alt)] border border-[var(--color-surface-border)] rounded-2xl outline-none focus:ring-4 mb-6 font-black"
+              style={{ 
+                '--tw-ring-color': `${colors.primary}40`,
+                color: colors.text,
+              } as React.CSSProperties}
             />
             <div className="flex gap-2 w-full">
-              <button type="button" onClick={() => { setShowPassModal(false); setPassInput(''); }} className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600">Cancel</button>
-              <button type="submit" className="flex-[2] py-4 bg-slate-900 text-white text-xs font-black rounded-2xl shadow-xl shadow-slate-300 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest">Verify PIN</button>
+              <button type="button" onClick={() => { setShowPassModal(false); setPassInput(''); }} className="flex-1 py-4 text-xs font-black uppercase tracking-widest hover:opacity-70 transition-colors" style={{ color: colors.textMuted }}>Cancel</button>
+              <button type="submit" className="flex-[2] py-4 text-white text-xs font-black rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest" style={{ backgroundColor: colors.text, color: colors.textInverse }}>Verify PIN</button>
             </div>
           </form>
         </div>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Gross Profit" value={`${currency}${grossProfit.toLocaleString()}`} icon={<TrendingIcon className="text-blue-500" />} />
-        <StatCard title="Expenses" value={`${currency}${totalExpenses.toLocaleString()}`} color="red" />
-        <StatCard title="Net Profit" value={`${currency}${netProfit.toLocaleString()}`} color={netProfit >= 0 ? 'green' : 'red'} />
-        <StatCard title="Margin" value={`${profitMargin.toFixed(1)}%`} color={profitMargin > 15 ? 'green' : 'amber'} />
+        <StatCard title="Gross Profit" value={`${currency}${grossProfit.toLocaleString()}`} icon={<TrendingIcon className="" />} colors={colors} />
+        <StatCard title="Expenses" value={`${currency}${totalExpenses.toLocaleString()}`} color="red" colors={colors} />
+        <StatCard title="Net Profit" value={`${currency}${netProfit.toLocaleString()}`} color={netProfit >= 0 ? 'green' : 'red'} colors={colors} />
+        <StatCard title="Margin" value={`${profitMargin.toFixed(1)}%`} color={profitMargin > 15 ? 'green' : 'amber'} colors={colors} />
       </div>
 
       {isUnlocked && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Stock Items" value={totalStockItems.toLocaleString()} icon={<PackageIcon className="text-emerald-500" />} color="emerald" />
-          <StatCard title="Sold This Month" value={itemsSoldThisMonth.toLocaleString()} icon={<SalesIcon className="text-violet-500" />} color="violet" />
+          <StatCard title="Stock Items" value={totalStockItems.toLocaleString()} icon={<PackageIcon className="" />} color="emerald" colors={colors} />
+          <StatCard title="Sold This Month" value={itemsSoldThisMonth.toLocaleString()} icon={<SalesIcon className="" />} color="violet" colors={colors} />
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40">
-            <h3 className="text-xl font-black mb-6 flex items-center gap-3 text-slate-800">
-              <div className="p-2 bg-blue-100 rounded-xl"><SparkleIcon className="text-blue-600" /></div>
+          <div className="bg-[var(--color-surface)] p-8 rounded-[2rem] border border-[var(--color-surface-border)] shadow-xl" style={{ boxShadow: `0 20px 25px -5px ${colors.primary}10` }}>
+            <h3 className="text-xl font-black mb-6 flex items-center gap-3" style={{ color: colors.text }}>
+              <div className="p-2 rounded-xl" style={{ backgroundColor: `${colors.primary}20` }}><SparkleIcon className="" style={{ color: colors.primary }} /></div>
               Zion Intelligence
             </h3>
             {loadingInsights ? (
               <div className="space-y-4">
-                <div className="h-10 bg-slate-50 animate-pulse rounded-2xl w-full"></div>
-                <div className="h-10 bg-slate-50 animate-pulse rounded-2xl w-4/5"></div>
+                <div className="h-10 bg-[var(--color-background-alt)] animate-pulse rounded-2xl w-full"></div>
+                <div className="h-10 bg-[var(--color-background-alt)] animate-pulse rounded-2xl w-4/5"></div>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {insights.map((tip, i) => (
-                  <div key={i} className="group p-5 bg-slate-50/50 hover:bg-blue-50 border border-slate-100 rounded-2xl transition-all duration-300">
-                    <p className="text-sm font-medium text-slate-700 leading-relaxed italic">"{tip}"</p>
+                  <div key={i} className="group p-5 bg-[var(--color-background-alt)] hover:bg-[var(--color-primary)]/10 border border-[var(--color-surface-border)] rounded-2xl transition-all duration-300">
+                    <p className="text-sm font-medium leading-relaxed italic" style={{ color: colors.text }}>"{tip}"</p>
                   </div>
                 ))}
               </div>
@@ -191,31 +197,31 @@ const Dashboard: React.FC<Props> = ({
           </div>
 
           {/* Currency Converter Section */}
-          <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40">
-            <h3 className="text-xl font-black mb-6 flex items-center gap-3 text-slate-800">
-              <div className="p-2 bg-emerald-100 rounded-xl"><ExchangeIcon className="text-emerald-600" /></div>
+          <div className="bg-[var(--color-surface)] p-8 rounded-[2rem] border border-[var(--color-surface-border)] shadow-xl" style={{ boxShadow: `0 20px 25px -5px ${colors.primary}10` }}>
+            <h3 className="text-xl font-black mb-6 flex items-center gap-3" style={{ color: colors.text }}>
+              <div className="p-2 rounded-xl" style={{ backgroundColor: `${colors.secondary}20` }}><ExchangeIcon className="" style={{ color: colors.secondary }} /></div>
               East African Converter
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">From</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: colors.textMuted }}>From</label>
                 <div className="flex gap-2">
-                  <select value={convFrom} onChange={e => setConvFrom(e.target.value)} className="w-20 p-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-xs font-bold">
+                  <select value={convFrom} onChange={e => setConvFrom(e.target.value)} className="w-20 p-3 bg-[var(--color-background-alt)] border border-[var(--color-surface-border)] rounded-2xl outline-none text-xs font-bold" style={{ color: colors.text }}>
                     {Object.keys(EXCHANGE_RATES).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  <input type="number" value={convAmount} onChange={e => setConvAmount(Number(e.target.value))} className="flex-1 p-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold" />
+                  <input type="number" value={convAmount} onChange={e => setConvAmount(Number(e.target.value))} className="flex-1 p-3 bg-[var(--color-background-alt)] border border-[var(--color-surface-border)] rounded-2xl outline-none font-bold" style={{ color: colors.text }} />
                 </div>
               </div>
               <div className="flex items-center justify-center pt-4">
-                <div className="p-3 bg-slate-50 rounded-full"><ExchangeIcon className="w-5 h-5 text-slate-400" /></div>
+                <div className="p-3 bg-[var(--color-background-alt)] rounded-full"><ExchangeIcon className="w-5 h-5" style={{ color: colors.textMuted }} /></div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">To</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: colors.textMuted }}>To</label>
                 <div className="flex gap-2">
-                  <select value={convTo} onChange={e => setConvTo(e.target.value)} className="w-20 p-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-xs font-bold">
+                  <select value={convTo} onChange={e => setConvTo(e.target.value)} className="w-20 p-3 bg-[var(--color-background-alt)] border border-[var(--color-surface-border)] rounded-2xl outline-none text-xs font-bold" style={{ color: colors.text }}>
                     {Object.keys(EXCHANGE_RATES).map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  <div className="flex-1 p-3 bg-blue-50 text-blue-700 rounded-2xl font-black border border-blue-100 flex items-center">
+                  <div className="flex-1 p-3 rounded-2xl font-black border border-[var(--color-surface-border)] flex items-center" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary }}>
                     {convTo}{convertedValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -224,79 +230,79 @@ const Dashboard: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col h-fit">
+        <div className="bg-[var(--color-surface)] p-8 rounded-[2rem] border border-[var(--color-surface-border)] shadow-xl flex flex-col h-fit" style={{ boxShadow: `0 20px 25px -5px ${colors.primary}10` }}>
           <div className="flex justify-between items-center mb-6">
-             <h3 className="text-xl font-black text-slate-800">System</h3>
-             <button onClick={() => setShowSettings(!showSettings)} className="text-blue-600 text-xs font-black uppercase tracking-widest">{showSettings ? 'Close' : 'Setup'}</button>
+             <h3 className="text-xl font-black" style={{ color: colors.text }}>System</h3>
+             <button onClick={() => setShowSettings(!showSettings)} className="text-xs font-black uppercase tracking-widest" style={{ color: colors.primary }}>{showSettings ? 'Close' : 'Setup'}</button>
           </div>
           
           {showSettings ? (
             <div className="space-y-6 animate-in zoom-in-95 duration-300">
               {!isUnlocked ? (
-                <button onClick={() => initiateAction('unlock')} className="w-full flex items-center justify-center gap-3 py-6 bg-slate-50 border border-dashed border-slate-200 rounded-3xl group hover:border-blue-400 hover:bg-blue-50 transition-all">
-                  <LockIcon className="text-slate-400 group-hover:text-blue-600 transition-colors" />
-                  <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600">Unlock System</span>
+                <button onClick={() => initiateAction('unlock')} className="w-full flex items-center justify-center gap-3 py-6 bg-[var(--color-background-alt)] border border-dashed border-[var(--color-surface-border)] group hover:border-[var(--color-primary)] transition-all rounded-3xl">
+                  <LockIcon className="transition-colors" style={{ color: colors.textMuted }} />
+                  <span className="text-xs font-black uppercase tracking-widest transition-colors group-hover:text-[var(--color-primary)]" style={{ color: colors.textMuted }}>Unlock System</span>
                 </button>
               ) : (
                 <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-500">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Daily Reminder</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: colors.textMuted }}>Daily Reminder</label>
                     <div className="flex gap-2">
-                      <input type="time" value={tempTime} onChange={e => setTempTime(e.target.value)} className="flex-1 p-3 text-sm bg-slate-50 border border-slate-100 rounded-2xl outline-none" />
-                      <button onClick={() => executeAction('setAlarm')} className="bg-slate-900 text-white text-[10px] font-black px-4 py-2 rounded-2xl">Set</button>
+                      <input type="time" value={tempTime} onChange={e => setTempTime(e.target.value)} className="flex-1 p-3 text-sm bg-[var(--color-background-alt)] border border-[var(--color-surface-border)] rounded-2xl outline-none" style={{ color: colors.text }} />
+                      <button onClick={() => executeAction('setAlarm')} className="text-white text-[10px] font-black px-4 py-2 rounded-2xl" style={{ backgroundColor: colors.text }}>Set</button>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Base Currency</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: colors.textMuted }}>Base Currency</label>
                     <div className="flex gap-2">
-                      <select value={selectedCurrency} onChange={e => setSelectedCurrency(e.target.value)} className="flex-1 p-3 text-sm bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold">
+                      <select value={selectedCurrency} onChange={e => setSelectedCurrency(e.target.value)} className="flex-1 p-3 text-sm bg-[var(--color-background-alt)] border border-[var(--color-surface-border)] rounded-2xl outline-none font-bold" style={{ color: colors.text }}>
                         <option value="$">$ USD</option><option value="£">£ GBP</option><option value="€">€ EUR</option><option value="₦">₦ NGN</option>
                         <option value="USHs">USHs (UG)</option><option value="KSHs">KSHs (KE)</option><option value="TZS">TZS (TZ)</option>
                       </select>
-                      <button onClick={() => executeAction('setCurrency')} className="bg-slate-900 text-white text-[10px] font-black px-4 py-2 rounded-2xl">Save</button>
+                      <button onClick={() => executeAction('setCurrency')} className="text-white text-[10px] font-black px-4 py-2 rounded-2xl" style={{ backgroundColor: colors.text }}>Save</button>
                     </div>
                   </div>
-                  <div className="space-y-3 pt-4 border-t border-slate-50">
-                    <button onClick={() => initiateAction('changePassword')} className="w-full p-3 bg-blue-50 text-blue-600 text-[10px] font-black rounded-2xl border border-blue-100 uppercase tracking-widest">Update PIN</button>
-                    <button onClick={() => setIsUnlocked(false)} className="w-full flex items-center justify-center gap-2 p-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"><LockIcon className="w-3 h-3" /> Lock Settings</button>
+                  <div className="space-y-3 pt-4 border-t" style={{ borderColor: colors.backgroundAlt }}>
+                    <button onClick={() => initiateAction('changePassword')} className="w-full p-3 text-xs font-black rounded-2xl uppercase tracking-widest" style={{ backgroundColor: `${colors.primary}20`, color: colors.primary, border: `1px solid ${colors.primary}30` }}>Update PIN</button>
+                    <button onClick={() => setIsUnlocked(false)} className="w-full flex items-center justify-center gap-2 p-3 text-xs font-black uppercase tracking-widest hover:opacity-70 transition-colors" style={{ color: colors.textMuted }}><LockIcon className="w-3 h-3" /> Lock Settings</button>
                   </div>
                 </div>
               )}
             </div>
           ) : (
              <div className="flex flex-col items-center justify-center py-10 opacity-30 grayscale pointer-events-none">
-                <div className="p-4 bg-slate-100 rounded-full mb-4"><ClockIcon className="w-8 h-8" /></div>
-                <p className="text-xs font-bold text-slate-500 uppercase">Configuration Hidden</p>
+                <div className="p-4 rounded-full mb-4" style={{ backgroundColor: colors.backgroundAlt }}><ClockIcon className="w-8 h-8" style={{ color: colors.textMuted }} /></div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: colors.textMuted }}>Configuration Hidden</p>
              </div>
           )}
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40">
-        <h3 className="text-xl font-black mb-6 flex items-center gap-3"><div className="p-2 bg-red-100 rounded-xl"><BellIcon className="text-red-500" /></div> Urgent Alerts</h3>
+      <div className="bg-[var(--color-surface)] p-8 rounded-[2rem] border border-[var(--color-surface-border)] shadow-xl" style={{ boxShadow: `0 20px 25px -5px ${colors.primary}10` }}>
+        <h3 className="text-xl font-black mb-6 flex items-center gap-3" style={{ color: colors.text }}><div className="p-2 rounded-xl" style={{ backgroundColor: `${colors.primary}20` }}><BellIcon className="" style={{ color: colors.primary }} /></div> Urgent Alerts</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {lowStockItems.map(i => (
-            <div key={i.id} className="p-4 bg-red-50/50 border border-red-100 rounded-[1.5rem] flex flex-col">
-              <span className="text-xs font-black text-red-400 uppercase tracking-widest mb-1">Low Inventory</span>
+            <div key={i.id} className="p-4 border rounded-[1.5rem] flex flex-col" style={{ backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}30` }}>
+              <span className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: colors.primary }}>Low Inventory</span>
               <div className="flex justify-between items-center">
-                <span className="font-bold text-red-900">{i.name}</span>
-                <span className="text-[10px] bg-red-600 text-white px-3 py-1 rounded-full font-black uppercase tracking-tighter">{i.quantity} left</span>
+                <span className="font-bold" style={{ color: colors.text }}>{i.name}</span>
+                <span className="text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-tighter" style={{ backgroundColor: colors.primary, color: colors.textInverse }}>{i.quantity} left</span>
               </div>
             </div>
           ))}
           {upcomingExpenses.map(e => (
-            <div key={e.id} className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-[1.5rem] flex flex-col">
-              <span className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-1">Upcoming Bill</span>
+            <div key={e.id} className="p-4 border rounded-[1.5rem] flex flex-col" style={{ backgroundColor: `${colors.secondary}20`, borderColor: `${colors.secondary}30` }}>
+              <span className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: colors.secondary }}>Upcoming Bill</span>
               <div className="flex justify-between items-center">
-                <span className="font-bold text-indigo-900">{e.category}</span>
-                <span className="text-xs font-black text-indigo-600">{currency}{e.amount.toLocaleString()}</span>
+                <span className="font-bold" style={{ color: colors.text }}>{e.category}</span>
+                <span className="text-xs font-bold" style={{ color: colors.secondary }}>{currency}{e.amount.toLocaleString()}</span>
               </div>
             </div>
           ))}
           {lowStockItems.length === 0 && upcomingExpenses.length === 0 && (
             <div className="col-span-full py-12 text-center opacity-50">
-              <div className="flex justify-center mb-4"><CheckCircleIcon className="w-12 h-12 text-emerald-400" /></div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Operations smooth. No alerts.</p>
+              <div className="flex justify-center mb-4"><CheckCircleIcon className="w-12 h-12" style={{ color: colors.primary }} /></div>
+              <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: colors.textMuted }}>Operations smooth. No alerts.</p>
             </div>
           )}
         </div>
@@ -305,20 +311,27 @@ const Dashboard: React.FC<Props> = ({
   );
 };
 
-const StatCard = ({ title, value, color = "blue", icon }: any) => {
-  const styles: any = {
-    blue: 'bg-white text-blue-700',
-    red: 'bg-white text-red-600',
-    green: 'bg-white text-emerald-600',
-    amber: 'bg-white text-amber-600',
-    emerald: 'bg-white text-emerald-700',
-    violet: 'bg-white text-violet-600',
+const StatCard = ({ title, value, color = "blue", icon, colors }: any) => {
+  const colorStyles: any = {
+    blue: { bg: `${colors.primary}10`, text: colors.primary },
+    red: { bg: '#fef2f2', text: '#dc2626' },
+    green: { bg: '#f0fdf4', text: '#16a34a' },
+    amber: { bg: '#fffbeb', text: '#d97706' },
+    emerald: { bg: '#f0fdf4', text: '#059669' },
+    violet: { bg: '#faf5ff', text: '#7c3aed' },
   };
+  const style = colorStyles[color] || colorStyles.blue;
+  
   return (
-    <div className={`p-6 rounded-[2rem] border border-slate-100 shadow-lg shadow-slate-200/30 ${styles[color]} relative overflow-hidden group hover:-translate-y-1 transition-all duration-300`}>
+    <div className="p-6 rounded-[2rem] border shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-all duration-300" 
+         style={{ 
+           backgroundColor: colors.surface, 
+           borderColor: colors.surfaceBorder,
+           boxShadow: `0 10px 15px -3px ${colors.primary}10`
+         }}>
       <div className="relative z-10">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-2">{title}</p>
-        <p className="text-2xl font-black">{value}</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-2" style={{ color: colors.textMuted }}>{title}</p>
+        <p className="text-2xl font-black" style={{ color: colors.text }}>{value}</p>
       </div>
       <div className="absolute top-4 right-4 opacity-10 group-hover:scale-125 transition-transform duration-500">
         {icon || <TrendingIcon className="w-8 h-8" />}
