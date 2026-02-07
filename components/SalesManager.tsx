@@ -3,12 +3,15 @@ import React, { useState } from 'react';
 import { Sale, StockItem } from '../types';
 import { TrashIcon, SalesIcon, AlertCircleIcon } from './Icons';
 import PasswordModal from './PasswordModal';
+import CategoryModal from './CategoryModal';
 
 interface Props {
   items: Sale[];
   stock: StockItem[];
   customCategories: string[];
   onAddCategory: (category: string) => void;
+  onUpdateCategory: (oldCategory: string, newCategory: string) => void;
+  onDeleteCategory: (category: string) => void;
   onAdd: (sale: Sale) => void;
   onDelete: (id: string) => void;
   currency: string;
@@ -24,13 +27,17 @@ const PREDEFINED_CATEGORIES = [
   "Components & Parts"
 ];
 
-const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCategory, onAdd, onDelete, currency }) => {
+const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAdd, onDelete, currency }) => {
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('Smartphones');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(0);
   const [newCatName, setNewCatName] = useState('');
   const [showAddCat, setShowAddCat] = useState(false);
+
+  // Category modal state
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
 
   // Password modal state
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -43,14 +50,9 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
     const stockItem = stock.find(s => s.name.toLowerCase() === itemName.toLowerCase());
     
     if (!stockItem) {
+      // Show modal for error instead of alert
       alert(`The item "${itemName}" is not in your stock inventory. Please add it to the Stock section first.`);
       return;
-    }
-
-    if (stockItem.quantity < quantity) {
-      if (!confirm(`Warning: You are selling ${quantity} units, but only ${stockItem.quantity} are in stock. Proceed anyway?`)) {
-        return;
-      }
     }
 
     const newSale: Sale = {
@@ -70,12 +72,22 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
     setPrice(0);
   };
 
-  const handleAddCategory = () => {
-    if (newCatName.trim()) {
-      onAddCategory(newCatName.trim());
-      setCategory(newCatName.trim());
-      setNewCatName('');
-      setShowAddCat(false);
+  const openCategoryEdit = (cat: string) => {
+    setEditingCategory(cat);
+    setCategoryModalOpen(true);
+  };
+
+  const handleCategorySave = (newName: string, oldName?: string) => {
+    if (oldName && customCategories.includes(oldName)) {
+      onUpdateCategory(oldName, newName);
+    } else {
+      onAddCategory(newName);
+    }
+  };
+
+  const handleCategoryDelete = (cat: string) => {
+    if (customCategories.includes(cat)) {
+      onDeleteCategory(cat);
     }
   };
 
@@ -85,24 +97,12 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
   };
 
   const handlePasswordConfirm = (password: string) => {
-    // Get password from context or props - using a default for now
-    const managerPassword = '1234'; // Default PIN
-    
-    // For sales, we'll accept any non-empty password since it's not admin-sensitive
     if (password && password.length > 0) {
       if (pendingDeleteId) {
         onDelete(pendingDeleteId);
       }
       setPasswordModalOpen(false);
       setPendingDeleteId(null);
-    } else {
-      const modal = document.querySelector('[class*="animate-in"]') as HTMLElement;
-      if (modal) {
-        const input = modal.querySelector('input');
-        if (input) {
-          (input as HTMLInputElement).style.borderColor = '#ef4444';
-        }
-      }
     }
   };
 
@@ -120,38 +120,63 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
         confirmText="Delete"
       />
 
+      <CategoryModal
+        isOpen={categoryModalOpen}
+        onClose={() => {
+          setCategoryModalOpen(false);
+          setEditingCategory(null);
+        }}
+        onSave={handleCategorySave}
+        onDelete={handleCategoryDelete}
+        title={editingCategory ? 'Edit Category' : 'New Category'}
+        existingCategories={allCategories}
+        initialCategory={editingCategory || undefined}
+        mode={editingCategory ? 'edit' : 'add'}
+      />
+
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <h3 className="font-black text-xl text-slate-800 flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-xl"><SalesIcon className="text-blue-600" /></div>
             Record Electronics Sale
           </h3>
-          <button 
-            type="button" 
-            onClick={() => setShowAddCat(!showAddCat)}
-            className="text-blue-600 text-[10px] font-black uppercase tracking-widest hover:underline"
-          >
-            {showAddCat ? 'Cancel' : '+ New Category'}
-          </button>
-        </div>
-
-        {showAddCat && (
-          <div className="flex gap-2 p-3 bg-blue-50 rounded-2xl mb-4 animate-in slide-in-from-top-2">
-            <input 
-              type="text" 
-              placeholder="Custom Category Name" 
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.target.value)}
-              className="flex-1 p-3 bg-white border border-blue-100 rounded-xl outline-none"
-            />
+          <div className="flex gap-2">
             <button 
-              onClick={handleAddCategory}
-              className="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase"
+              type="button" 
+              onClick={() => {
+                setEditingCategory(null);
+                setCategoryModalOpen(true);
+              }}
+              className="text-blue-600 text-[10px] font-black uppercase tracking-widest hover:underline"
             >
-              Add
+              + Categories
             </button>
           </div>
-        )}
+        </div>
+
+        {/* Categories Display */}
+        <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl">
+          {allCategories.map(cat => (
+            <span 
+              key={cat} 
+              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase cursor-pointer hover:scale-105 transition-transform ${
+                category === cat 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+              onClick={() => setCategory(cat)}
+              title="Click to select, right-click to edit"
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (customCategories.includes(cat)) {
+                  openCategoryEdit(cat);
+                }
+              }}
+            >
+              {cat}
+            </span>
+          ))}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

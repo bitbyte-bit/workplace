@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useCallback, Component, ErrorInfo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, ErrorInfo } from 'react';
 import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
 import Dashboard from './components/Dashboard';
 import SalesManager from './components/SalesManager';
@@ -33,7 +33,6 @@ interface SearchResult {
   amount?: number;
 }
 
-// Error boundary to catch rendering errors
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
   const [hasError, setHasError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -43,11 +42,7 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
       setError(error);
       setHasError(true);
     };
-
-    // You can add more error handling here if needed
-    return () => {
-      // cleanup
-    };
+    return () => {};
   }, []);
 
   if (hasError) {
@@ -79,6 +74,10 @@ const App: React.FC = () => {
   const [stock, setStock] = useState<StockItem[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    const saved = localStorage.getItem('zion_custom_categories');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [notification, setNotification] = useState<{ message: string, type: NotificationType } | null>(null);
   const [managerPassword, setManagerPassword] = useState(() => localStorage.getItem('zion_manager_pass') || '1234');
@@ -99,6 +98,11 @@ const App: React.FC = () => {
       showNotification("Incorrect PIN. Action denied.", "error");
     }
   }, [managerPassword, showNotification]);
+
+  // Save custom categories to localStorage
+  useEffect(() => {
+    localStorage.setItem('zion_custom_categories', JSON.stringify(customCategories));
+  }, [customCategories]);
 
   useEffect(() => {
     const alarmInterval = setInterval(() => {
@@ -142,12 +146,10 @@ const App: React.FC = () => {
   const filteredDebts = useMemo(() => debts.filter(d => d.debtorName.toLowerCase().includes(searchQuery.toLowerCase()) || d.phoneNumber.includes(searchQuery)).sort((a, b) => b.date - a.date), [debts, searchQuery]);
   const filteredExpenses = useMemo(() => expenses.filter(e => e.category.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), [expenses, searchQuery]);
 
-  // Build search results for overlay
   const searchResults: SearchResult[] = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const results: SearchResult[] = [];
     
-    // Stock items
     stock.forEach(item => {
       if (item.name.toLowerCase().includes(searchQuery.toLowerCase())) {
         results.push({
@@ -159,7 +161,6 @@ const App: React.FC = () => {
       }
     });
     
-    // Sales
     sales.forEach(sale => {
       if (sale.itemName.toLowerCase().includes(searchQuery.toLowerCase())) {
         results.push({
@@ -172,7 +173,6 @@ const App: React.FC = () => {
       }
     });
     
-    // Debts
     debts.forEach(debt => {
       if (debt.debtorName.toLowerCase().includes(searchQuery.toLowerCase())) {
         results.push({
@@ -184,7 +184,6 @@ const App: React.FC = () => {
       }
     });
     
-    // Expenses
     expenses.forEach(expense => {
       if (expense.category.toLowerCase().includes(searchQuery.toLowerCase())) {
         results.push({
@@ -200,7 +199,6 @@ const App: React.FC = () => {
   }, [searchQuery, stock, sales, debts, expenses]);
 
   const handleSearchSelect = (result: SearchResult) => {
-    // Navigate to appropriate tab based on result type
     switch (result.type) {
       case 'stock':
         setActiveTab('stock');
@@ -285,6 +283,25 @@ const App: React.FC = () => {
     setExpenses(prev => prev.filter(e => e.id !== id));
     showNotification("Expense record deleted.");
   });
+
+  const handleAddCategory = (category: string) => {
+    if (!customCategories.includes(category)) {
+      setCustomCategories(prev => [...prev, category]);
+      showNotification(`Category "${category}" added.`);
+    }
+  };
+
+  const handleUpdateCategory = (oldCategory: string, newCategory: string) => {
+    if (!customCategories.includes(newCategory)) {
+      setCustomCategories(prev => prev.map(cat => cat === oldCategory ? newCategory : cat));
+      showNotification(`Category updated from "${oldCategory}" to "${newCategory}".`);
+    }
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    setCustomCategories(prev => prev.filter(cat => cat !== category));
+    showNotification(`Category "${category}" deleted.`);
+  };
 
   const handleChangePassword = (newPass: string) => {
     setManagerPassword(newPass);
@@ -375,8 +392,10 @@ const App: React.FC = () => {
           <SalesManager 
             items={filteredSales} 
             stock={stock} 
-            customCategories={[]}
-            onAddCategory={() => {}}
+            customCategories={customCategories}
+            onAddCategory={handleAddCategory}
+            onUpdateCategory={handleUpdateCategory}
+            onDeleteCategory={handleDeleteCategory}
             onAdd={handleSale} 
             onDelete={handleDeleteSale}
             currency={currency}
@@ -406,8 +425,10 @@ const App: React.FC = () => {
         {activeTab === 'expenses' && (
           <ExpenseManager 
             items={filteredExpenses} 
-            customCategories={[]}
-            onAddCategory={() => {}}
+            customCategories={customCategories}
+            onAddCategory={handleAddCategory}
+            onUpdateCategory={handleUpdateCategory}
+            onDeleteCategory={handleDeleteCategory}
             onAdd={handleAddExpense} 
             onDelete={handleDeleteExpense}
             currency={currency}

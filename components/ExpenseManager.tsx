@@ -3,11 +3,14 @@ import React, { useState } from 'react';
 import { Expense, ExpenseFrequency } from '../types';
 import { TrashIcon, ExpenseIcon, ClockIcon } from './Icons';
 import PasswordModal from './PasswordModal';
+import CategoryModal from './CategoryModal';
 
 interface Props {
   items: Expense[];
   customCategories: string[];
   onAddCategory: (category: string) => void;
+  onUpdateCategory: (oldCategory: string, newCategory: string) => void;
+  onDeleteCategory: (category: string) => void;
   onAdd: (expense: Expense) => void;
   onDelete: (id: string) => void;
   currency: string;
@@ -24,13 +27,17 @@ const PREDEFINED_CATEGORIES = [
   "Software & Tech Tools"
 ];
 
-const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategory, onAdd, onDelete, currency }) => {
+const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAdd, onDelete, currency }) => {
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState<ExpenseFrequency>('none');
   const [newCatName, setNewCatName] = useState('');
   const [showAddCat, setShowAddCat] = useState(false);
+
+  // Category modal state
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
 
   // Password modal state
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -51,12 +58,22 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
     setCategory(''); setAmount(0); setDescription(''); setFrequency('none');
   };
 
-  const handleAddCategory = () => {
-    if (newCatName.trim()) {
-      onAddCategory(newCatName.trim());
-      setCategory(newCatName.trim());
-      setNewCatName('');
-      setShowAddCat(false);
+  const openCategoryEdit = (cat: string) => {
+    setEditingCategory(cat);
+    setCategoryModalOpen(true);
+  };
+
+  const handleCategorySave = (newName: string, oldName?: string) => {
+    if (oldName && customCategories.includes(oldName)) {
+      onUpdateCategory(oldName, newName);
+    } else {
+      onAddCategory(newName);
+    }
+  };
+
+  const handleCategoryDelete = (cat: string) => {
+    if (customCategories.includes(cat)) {
+      onDeleteCategory(cat);
     }
   };
 
@@ -72,14 +89,6 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
       }
       setPasswordModalOpen(false);
       setPendingDeleteId(null);
-    } else {
-      const modal = document.querySelector('[class*="animate-in"]') as HTMLElement;
-      if (modal) {
-        const input = modal.querySelector('input');
-        if (input) {
-          (input as HTMLInputElement).style.borderColor = '#ef4444';
-        }
-      }
     }
   };
 
@@ -97,38 +106,63 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
         confirmText="Delete"
       />
 
+      <CategoryModal
+        isOpen={categoryModalOpen}
+        onClose={() => {
+          setCategoryModalOpen(false);
+          setEditingCategory(null);
+        }}
+        onSave={handleCategorySave}
+        onDelete={handleCategoryDelete}
+        title={editingCategory ? 'Edit Category' : 'New Category'}
+        existingCategories={allCategories}
+        initialCategory={editingCategory || undefined}
+        mode={editingCategory ? 'edit' : 'add'}
+      />
+
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
             <div className="p-2 bg-rose-100 rounded-xl"><ExpenseIcon className="text-rose-600" /></div>
             Log Operational Expense
           </h3>
-          <button 
-            type="button" 
-            onClick={() => setShowAddCat(!showAddCat)}
-            className="text-rose-600 text-[10px] font-black uppercase tracking-widest hover:underline"
-          >
-            {showAddCat ? 'Cancel' : '+ Custom Category'}
-          </button>
-        </div>
-
-        {showAddCat && (
-          <div className="flex gap-2 p-3 bg-rose-50 rounded-2xl mb-4 animate-in slide-in-from-top-2">
-            <input 
-              type="text" 
-              placeholder="Custom Expense Type" 
-              value={newCatName}
-              onChange={(e) => setNewCatName(e.target.value)}
-              className="flex-1 p-3 bg-white border border-rose-100 rounded-xl outline-none"
-            />
+          <div className="flex gap-2">
             <button 
-              onClick={handleAddCategory}
-              className="bg-rose-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase"
+              type="button" 
+              onClick={() => {
+                setEditingCategory(null);
+                setCategoryModalOpen(true);
+              }}
+              className="text-rose-600 text-[10px] font-black uppercase tracking-widest hover:underline"
             >
-              Add
+              + Categories
             </button>
           </div>
-        )}
+        </div>
+
+        {/* Categories Display */}
+        <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl">
+          {allCategories.map(cat => (
+            <span 
+              key={cat} 
+              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase cursor-pointer hover:scale-105 transition-transform ${
+                category === cat 
+                  ? 'bg-rose-600 text-white' 
+                  : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+              onClick={() => setCategory(cat)}
+              title="Click to select, right-click to edit"
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (customCategories.includes(cat)) {
+                  openCategoryEdit(cat);
+                }
+              }}
+            >
+              {cat}
+            </span>
+          ))}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

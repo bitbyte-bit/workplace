@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { BusinessData } from '../types';
+import { BusinessData, Sale, Expense, StockItem, Debt } from '../types';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import { ReportsIcon, SalesIcon, ExpenseIcon, CheckCircleIcon } from './Icons';
+import { ReportsIcon, SalesIcon, ExpenseIcon, CheckCircleIcon, StockIcon, DebtIcon } from './Icons';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement
 } from 'chart.js';
@@ -59,24 +59,152 @@ const Reports: React.FC<Props> = ({ data, currency }) => {
     const doc = new jsPDF() as any;
     const totalSales = data.sales.reduce((a, s) => a + s.price * s.quantity, 0);
     const totalExpenses = data.expenses.reduce((a, e) => a + e.amount, 0);
+    const totalStockValue = data.stock.reduce((a, s) => a + s.quantity * s.costPrice, 0);
+    const unpaidDebts = data.debts.filter(d => !d.isPaid).reduce((a, d) => a + d.amount, 0);
 
-    doc.setFontSize(22);
-    doc.text("ZION BALANCE SHEET", 105, 20, { align: 'center' });
+    // Title
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text("ZION BUSINESS RECORDS", 105, 20, { align: 'center' });
+    
     doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
     doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 28, { align: 'center' });
 
+    // Summary Section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("FINANCIAL SUMMARY", 14, 45);
+    
     doc.autoTable({
-      startY: 40,
+      startY: 50,
       head: [['Metric', `Value (${currency})`]],
       body: [
         ['Total Revenue', totalSales.toLocaleString()],
         ['Total Expenses', totalExpenses.toLocaleString()],
-        ['Net Profit', (totalSales - totalExpenses).toLocaleString()]
+        ['Net Profit', (totalSales - totalExpenses).toLocaleString()],
+        ['Stock Value', totalStockValue.toLocaleString()],
+        ['Unpaid Debts', unpaidDebts.toLocaleString()],
       ],
-      theme: 'striped'
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] }
     });
 
-    doc.save(`zion_report_${Date.now()}.pdf`);
+    // Sales Section
+    let currentY = (doc as any).lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("SALES RECORDS", 14, currentY);
+    
+    if (data.sales.length > 0) {
+      doc.autoTable({
+        startY: currentY + 5,
+        head: [['Date', 'Item', 'Category', 'Qty', 'Unit Price', 'Total']],
+        body: data.sales.map(s => [
+          new Date(s.date).toLocaleDateString(),
+          s.itemName,
+          s.category,
+          s.quantity,
+          `${currency}${s.price.toLocaleString()}`,
+          `${currency}${(s.price * s.quantity).toLocaleString()}`
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [16, 185, 129] }
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text("No sales records found.", 14, currentY + 12);
+    }
+
+    // Stock Section
+    currentY = (doc as any).lastAutoTable?.finalY || currentY + 30;
+    if (data.sales.length === 0) currentY += 10;
+    currentY += 10;
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("STOCK INVENTORY", 14, currentY);
+    
+    if (data.stock.length > 0) {
+      doc.autoTable({
+        startY: currentY + 5,
+        head: [['Item', 'Quantity', 'Cost Price', 'Selling Price', 'Value']],
+        body: data.stock.map(s => [
+          s.name,
+          s.quantity,
+          `${currency}${s.costPrice.toLocaleString()}`,
+          `${currency}${s.sellingPrice.toLocaleString()}`,
+          `${currency}${(s.quantity * s.costPrice).toLocaleString()}`
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] }
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text("No stock items found.", 14, currentY + 12);
+    }
+
+    // Debts Section
+    currentY = (doc as any).lastAutoTable?.finalY || currentY + 30;
+    if (data.stock.length === 0) currentY += 10;
+    currentY += 10;
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("DEBTS RECORDS", 14, currentY);
+    
+    if (data.debts.length > 0) {
+      doc.autoTable({
+        startY: currentY + 5,
+        head: [['Debtor', 'Phone', 'Amount', 'Status', 'Date']],
+        body: data.debts.map(d => [
+          d.debtorName,
+          d.phoneNumber,
+          `${currency}${d.amount.toLocaleString()}`,
+          d.isPaid ? 'Paid' : 'Unpaid',
+          new Date(d.date).toLocaleDateString()
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [99, 102, 241] }
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text("No debt records found.", 14, currentY + 12);
+    }
+
+    // Expenses Section
+    currentY = (doc as any).lastAutoTable?.finalY || currentY + 30;
+    if (data.debts.length === 0) currentY += 10;
+    currentY += 10;
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("EXPENSES RECORDS", 14, currentY);
+    
+    if (data.expenses.length > 0) {
+      doc.autoTable({
+        startY: currentY + 5,
+        head: [['Category', 'Description', 'Amount', 'Frequency', 'Date']],
+        body: data.expenses.map(e => [
+          e.category,
+          e.description,
+          `${currency}${e.amount.toLocaleString()}`,
+          e.frequency === 'none' ? 'One-time' : e.frequency,
+          new Date(e.date).toLocaleDateString()
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [244, 63, 94] }
+      });
+    } else {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'italic');
+      doc.text("No expense records found.", 14, currentY + 12);
+    }
+
+    doc.save(`zion_records_${Date.now()}.pdf`);
   };
 
   return (
@@ -87,7 +215,7 @@ const Reports: React.FC<Props> = ({ data, currency }) => {
           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Master Performance Review</p>
         </div>
         <button onClick={generatePDF} className="w-full md:w-auto bg-slate-900 text-white text-[10px] font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-2 shadow-2xl shadow-slate-400 hover:scale-105 active:scale-95 transition-all tracking-[0.2em] uppercase">
-          <ReportsIcon className="w-4 h-4" /> Extract balance sheet
+          <ReportsIcon className="w-4 h-4" /> Export PDF
         </button>
       </div>
 
