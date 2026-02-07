@@ -11,6 +11,7 @@ import SearchBar from './components/SearchBar';
 import Notification, { NotificationType } from './components/Notification';
 import WarningStatusBar from './components/WarningStatusBar';
 import ThemeSwitcher from './components/ThemeSwitcher';
+import RecordsManager from './components/RecordsManager';
 import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
 import { 
@@ -20,7 +21,8 @@ import {
   DebtIcon, 
   ExpenseIcon, 
   ReportsIcon,
-  ClockIcon
+  ClockIcon,
+  FolderIcon
 } from './components/Icons';
 
 interface SearchResult {
@@ -83,6 +85,7 @@ const App: React.FC = () => {
   const [currency, setCurrency] = useState(() => localStorage.getItem('zion_currency') || '$');
   const [reminderTime, setReminderTime] = useState(() => localStorage.getItem('zion_reminder_time') || '18:00');
   const [lastAlarmShown, setLastAlarmShown] = useState<string | null>(null);
+  const [showRecordsManager, setShowRecordsManager] = useState(false);
 
   const showNotification = useCallback((message: string, type: NotificationType = 'success') => {
     setNotification({ message, type });
@@ -117,7 +120,7 @@ const App: React.FC = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        await db.initDB();
+        await db.initLocalDB();
         const s = await db.fetchAllSales();
         const st = await db.fetchAllStock();
         const d = await db.fetchAllDebts();
@@ -331,6 +334,7 @@ const App: React.FC = () => {
           <NavButton active={activeTab === 'debts'} onClick={() => setActiveTab('debts')} icon={<DebtIcon />} label="Debts" />
           <NavButton active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} icon={<ExpenseIcon />} label="Expenses" />
           <NavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<ReportsIcon />} label="Reports" />
+          <NavButton active={false} onClick={() => setShowRecordsManager(true)} icon={<FolderIcon />} label="Records" />
         </nav>
         <div className="mt-auto p-4 bg-[var(--color-background-alt)] rounded-2xl border border-[var(--color-surface-border)]">
           <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mb-2">Reminder</p>
@@ -413,6 +417,8 @@ const App: React.FC = () => {
       </main>
 
       <WarningStatusBar data={businessData} onNavigate={setActiveTab} />
+
+      {showRecordsManager && <RecordsManager onClose={() => setShowRecordsManager(false)} />}
 
       <nav className="md:hidden fixed bottom-6 left-6 right-6 bg-[var(--color-surface)]/90 backdrop-blur-lg border border-[var(--color-surface-border)] rounded-3xl flex justify-around items-center p-3 z-50 shadow-2xl shadow-[var(--color-primary)]/10">
         <MobileNavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<DashboardIcon />} label="Home" />

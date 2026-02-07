@@ -1,8 +1,7 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BusinessData } from '../types';
-import { getBusinessInsights } from '../services/geminiService';
-import { SparkleIcon, BellIcon, ClockIcon, TrendingIcon, LockIcon, UnlockIcon, ExchangeIcon, AlertCircleIcon, CheckCircleIcon, PackageIcon, SalesIcon } from './Icons';
+import { SparkleIcon, BellIcon, ClockIcon, TrendingIcon, LockIcon, ExchangeIcon, CheckCircleIcon, PackageIcon, SalesIcon } from './Icons';
 import { isExpenseDueSoon } from '../utils/expenseUtils';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -30,8 +29,12 @@ const Dashboard: React.FC<Props> = ({
   data, currentPassword, onChangePassword, currency, onCurrencyChange, reminderTime, onReminderChange 
 }) => {
   const { colors } = useTheme();
-  const [insights, setInsights] = useState<string[]>([]);
-  const [loadingInsights, setLoadingInsights] = useState(false);
+  const [insights] = useState<string[]>([
+    "Review your stock levels weekly to avoid stockouts on popular items.",
+    "Track your profit margins on each product to identify high-performing items.",
+    "Set up regular debt follow-ups to improve cash flow.",
+    "Monitor expenses monthly to identify cost-saving opportunities."
+  ]);
   const [showSettings, setShowSettings] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   
@@ -70,16 +73,6 @@ const Dashboard: React.FC<Props> = ({
       .filter(sale => sale.date >= startOfMonth)
       .reduce((acc, sale) => acc + sale.quantity, 0);
   }, [data.sales]);
-
-  useEffect(() => {
-    const fetchInsights = async () => {
-      setLoadingInsights(true);
-      const advice = await getBusinessInsights(data);
-      setInsights(advice);
-      setLoadingInsights(false);
-    };
-    fetchInsights();
-  }, [data]);
 
   const initiateAction = (type: string, value?: any) => {
     if (isUnlocked && type !== 'changePassword') {
@@ -178,22 +171,15 @@ const Dashboard: React.FC<Props> = ({
           <div className="bg-[var(--color-surface)] p-8 rounded-[2rem] border border-[var(--color-surface-border)] shadow-xl" style={{ boxShadow: `0 20px 25px -5px ${colors.primary}10` }}>
             <h3 className="text-xl font-black mb-6 flex items-center gap-3" style={{ color: colors.text }}>
               <div className="p-2 rounded-xl" style={{ backgroundColor: `${colors.primary}20` }}><SparkleIcon className="" style={{ color: colors.primary }} /></div>
-              Zion Intelligence
+              Business Tips
             </h3>
-            {loadingInsights ? (
-              <div className="space-y-4">
-                <div className="h-10 bg-[var(--color-background-alt)] animate-pulse rounded-2xl w-full"></div>
-                <div className="h-10 bg-[var(--color-background-alt)] animate-pulse rounded-2xl w-4/5"></div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {insights.map((tip, i) => (
-                  <div key={i} className="group p-5 bg-[var(--color-background-alt)] hover:bg-[var(--color-primary)]/10 border border-[var(--color-surface-border)] rounded-2xl transition-all duration-300">
-                    <p className="text-sm font-medium leading-relaxed italic" style={{ color: colors.text }}>"{tip}"</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {insights.map((tip, i) => (
+                <div key={i} className="group p-5 bg-[var(--color-background-alt)] hover:bg-[var(--color-primary)]/10 border border-[var(--color-surface-border)] rounded-2xl transition-all duration-300">
+                  <p className="text-sm font-medium leading-relaxed italic" style={{ color: colors.text }}>"{tip}"</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Currency Converter Section */}
