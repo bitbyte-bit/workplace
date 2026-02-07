@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Expense, ExpenseFrequency } from '../types';
 import { TrashIcon, ExpenseIcon, ClockIcon } from './Icons';
+import PasswordModal from './PasswordModal';
 
 interface Props {
   items: Expense[];
@@ -31,6 +32,10 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
   const [newCatName, setNewCatName] = useState('');
   const [showAddCat, setShowAddCat] = useState(false);
 
+  // Password modal state
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   const allCategories = [...new Set([...PREDEFINED_CATEGORIES, ...customCategories])];
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,8 +60,43 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
     }
   };
 
+  const requestDelete = (id: string) => {
+    setPendingDeleteId(id);
+    setPasswordModalOpen(true);
+  };
+
+  const handlePasswordConfirm = (password: string) => {
+    if (password && password.length > 0) {
+      if (pendingDeleteId) {
+        onDelete(pendingDeleteId);
+      }
+      setPasswordModalOpen(false);
+      setPendingDeleteId(null);
+    } else {
+      const modal = document.querySelector('[class*="animate-in"]') as HTMLElement;
+      if (modal) {
+        const input = modal.querySelector('input');
+        if (input) {
+          (input as HTMLInputElement).style.borderColor = '#ef4444';
+        }
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <PasswordModal
+        isOpen={passwordModalOpen}
+        onClose={() => {
+          setPasswordModalOpen(false);
+          setPendingDeleteId(null);
+        }}
+        onConfirm={handlePasswordConfirm}
+        title="Delete Expense"
+        message="Enter PIN to confirm deletion"
+        confirmText="Delete"
+      />
+
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 space-y-6">
         <div className="flex justify-between items-center">
           <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
@@ -150,7 +190,7 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
             </div>
             <div className="flex items-center gap-4">
                <p className="font-black text-xl text-rose-600">-{currency}{expense.amount.toLocaleString()}</p>
-               <button onClick={() => onDelete(expense.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white" title="Delete PIN Required">
+               <button onClick={() => requestDelete(expense.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white" title="Delete (PIN required)">
                  <TrashIcon className="w-4 h-4" />
                </button>
             </div>

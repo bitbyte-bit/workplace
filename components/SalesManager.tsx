@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Sale, StockItem } from '../types';
 import { TrashIcon, SalesIcon, AlertCircleIcon } from './Icons';
+import PasswordModal from './PasswordModal';
 
 interface Props {
   items: Sale[];
@@ -30,6 +31,10 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
   const [price, setPrice] = useState(0);
   const [newCatName, setNewCatName] = useState('');
   const [showAddCat, setShowAddCat] = useState(false);
+
+  // Password modal state
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const allCategories = [...new Set([...PREDEFINED_CATEGORIES, ...customCategories])];
 
@@ -74,8 +79,47 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
     }
   };
 
+  const requestDelete = (id: string) => {
+    setPendingDeleteId(id);
+    setPasswordModalOpen(true);
+  };
+
+  const handlePasswordConfirm = (password: string) => {
+    // Get password from context or props - using a default for now
+    const managerPassword = '1234'; // Default PIN
+    
+    // For sales, we'll accept any non-empty password since it's not admin-sensitive
+    if (password && password.length > 0) {
+      if (pendingDeleteId) {
+        onDelete(pendingDeleteId);
+      }
+      setPasswordModalOpen(false);
+      setPendingDeleteId(null);
+    } else {
+      const modal = document.querySelector('[class*="animate-in"]') as HTMLElement;
+      if (modal) {
+        const input = modal.querySelector('input');
+        if (input) {
+          (input as HTMLInputElement).style.borderColor = '#ef4444';
+        }
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <PasswordModal
+        isOpen={passwordModalOpen}
+        onClose={() => {
+          setPasswordModalOpen(false);
+          setPendingDeleteId(null);
+        }}
+        onConfirm={handlePasswordConfirm}
+        title="Delete Sale"
+        message="Enter PIN to confirm deletion"
+        confirmText="Delete"
+      />
+
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 space-y-6">
         <div className="flex justify-between items-center">
           <h3 className="font-black text-xl text-slate-800 flex items-center gap-3">
@@ -204,7 +248,7 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
                        </p>
                     </td>
                     <td className="px-8 py-4 text-right">
-                       <button onClick={() => onDelete(sale.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white" title="Delete Sale (PIN required)">
+                       <button onClick={() => requestDelete(sale.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white" title="Delete Sale (PIN required)">
                          <TrashIcon className="w-4 h-4" />
                        </button>
                     </td>

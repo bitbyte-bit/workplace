@@ -331,16 +331,48 @@ app.delete('/api/expenses/:id', (req, res) => {
 // Dashboard summary endpoint
 app.get('/api/summary', (req, res) => {
   try {
-    const salesTotal = db.prepare('SELECT SUM(price * quantity) as total FROM sales').get()?.total || 0;
-    const stockCount = db.prepare('SELECT COUNT(*) as count FROM stock').get().count;
-    const totalStockValue = db.prepare('SELECT SUM(quantity * costPrice) as total FROM stock').get()?.total || 0;
-    const unpaidDebts = db.prepare('SELECT SUM(amount) as total FROM debts WHERE isPaid = 0').get()?.total || 0;
-    const totalExpenses = db.prepare('SELECT SUM(amount) as total FROM expenses').get()?.total || 0;
-    const lowStockItems = db.prepare('SELECT COUNT(*) as count FROM stock WHERE quantity <= lowStockThreshold').get().count;
+    // Fetch all data and calculate sums in JavaScript (more reliable for sql.js)
+    const salesStmt = db.prepare('SELECT * FROM sales');
+    const sales = [];
+    while (salesStmt.step()) {
+      sales.push(salesStmt.getAsObject());
+    }
+    salesStmt.free();
+    const salesTotal = sales.reduce((acc, s) => acc + (Number(s.price) * Number(s.quantity)), 0);
+
+    const stockStmt = db.prepare('SELECT * FROM stock');
+    const stock = [];
+    while (stockStmt.step()) {
+      const item = stockStmt.getAsObject();
+      item.costHistory = item.costHistory ? JSON.parse(item.costHistory) : [];
+      stock.push(item);
+    }
+    stockStmt.free();
+    const totalStockValue = stock.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.costPrice)), 0);
+
+    const debtsStmt = db.prepare('SELECT * FROM debts');
+    const debts = [];
+    while (debtsStmt.step()) {
+      const debt = debtsStmt.getAsObject();
+      debt.isPaid = debt.isPaid === 1;
+      debts.push(debt);
+    }
+    debtsStmt.free();
+    const unpaidDebts = debts.filter(d => !d.isPaid).reduce((acc, d) => acc + Number(d.amount), 0);
+
+    const expensesStmt = db.prepare('SELECT * FROM expenses');
+    const expenses = [];
+    while (expensesStmt.step()) {
+      expenses.push(expensesStmt.getAsObject());
+    }
+    expensesStmt.free();
+    const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount), 0);
+
+    const lowStockItems = stock.filter(item => Number(item.quantity) <= Number(item.lowStockThreshold || 5)).length;
 
     res.json({
       salesTotal,
-      stockCount,
+      stockCount: stock.length,
       totalStockValue,
       unpaidDebts,
       totalExpenses,

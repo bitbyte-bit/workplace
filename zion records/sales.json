@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "cid": "test123",
+    "name": "Test Item",
+    "type": "Test",
+    "notnull": 5,
+    "dflt_value": 10,
+    "pk": 5
+  },
+  {
+    "cid": "test456",
+    "name": "Test Item 2",
+    "type": "Test",
+    "notnull": 3,
+    "dflt_value": 15,
+    "pk": 7
+  }
+]

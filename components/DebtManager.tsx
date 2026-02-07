@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Debt } from '../types';
 import { TrashIcon, DebtIcon, ClockIcon } from './Icons';
+import PasswordModal from './PasswordModal';
 
 interface Props {
   items: Debt[];
@@ -13,6 +14,8 @@ interface Props {
   currency: string;
 }
 
+type ModalAction = 'edit' | 'delete' | null;
+
 const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDelete, managerPassword, currency }) => {
   const [debtorName, setDebtorName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -21,6 +24,10 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Debt | null>(null);
+
+  // Password modal state
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ action: ModalAction; id?: string; data?: Debt } | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,13 +40,34 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
     setDebtorName(''); setPhoneNumber(''); setAmount(0); setDescription('');
   };
 
-  const startEdit = (debt: Debt) => {
-    const pass = prompt("Enter manager password to edit debt:");
-    if (pass === managerPassword) {
-      setEditingId(debt.id);
-      setEditForm({ ...debt });
+  const requestEdit = (debt: Debt) => {
+    setPendingAction({ action: 'edit', id: debt.id, data: debt });
+    setPasswordModalOpen(true);
+  };
+
+  const requestDelete = (id: string) => {
+    setPendingAction({ action: 'delete', id });
+    setPasswordModalOpen(true);
+  };
+
+  const handlePasswordConfirm = (password: string) => {
+    if (password === managerPassword) {
+      if (pendingAction?.action === 'edit' && pendingAction.data) {
+        setEditingId(pendingAction.id!);
+        setEditForm({ ...pendingAction.data });
+      } else if (pendingAction?.action === 'delete' && pendingAction.id) {
+        onDelete(pendingAction.id);
+      }
+      setPasswordModalOpen(false);
+      setPendingAction(null);
     } else {
-      alert("Incorrect password.");
+      const modal = document.querySelector('[class*="animate-in"]') as HTMLElement;
+      if (modal) {
+        const input = modal.querySelector('input');
+        if (input) {
+          (input as HTMLInputElement).style.borderColor = '#ef4444';
+        }
+      }
     }
   };
 
@@ -54,6 +82,18 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
 
   return (
     <div className="space-y-6">
+      <PasswordModal
+        isOpen={passwordModalOpen}
+        onClose={() => {
+          setPasswordModalOpen(false);
+          setPendingAction(null);
+        }}
+        onConfirm={handlePasswordConfirm}
+        title="Manager Authentication"
+        message="Enter your PIN to confirm this action"
+        confirmText="Verify"
+      />
+
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 space-y-6">
         <h3 className="font-black text-xl text-slate-800 flex items-center gap-3">
           <div className="p-2 bg-indigo-100 rounded-xl"><DebtIcon className="text-indigo-600" /></div>
@@ -117,10 +157,10 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
                 <div className="text-right flex flex-col items-end gap-2">
                   <p className="font-black text-2xl text-indigo-700">{currency}{debt.amount.toLocaleString()}</p>
                   <div className="flex gap-2">
-                    <button onClick={() => startEdit(debt)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-100 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => requestEdit(debt)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-100 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Edit (PIN required)">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeWidth={2}/></svg>
                     </button>
-                    <button onClick={() => onDelete(debt.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" title="Delete PIN Required">
+                    <button onClick={() => requestDelete(debt.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" title="Delete (PIN required)">
                       <TrashIcon className="w-4 h-4" />
                     </button>
                     <button onClick={() => onToggle(debt.id)} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl transition-all ${debt.isPaid ? 'bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:scale-105'}`}>

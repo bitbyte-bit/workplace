@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { StockItem, CostHistoryEntry } from '../types';
 import { TrashIcon, PackageIcon, AlertCircleIcon, StockIcon } from './Icons';
+import PasswordModal from './PasswordModal';
 
 interface Props {
   items: StockItem[];
@@ -11,6 +12,8 @@ interface Props {
   managerPassword: string;
   currency: string;
 }
+
+type ModalAction = 'edit' | 'delete' | null;
 
 const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, managerPassword, currency }) => {
   const [name, setName] = useState('');
@@ -23,6 +26,10 @@ const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, manag
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<StockItem | null>(null);
   const [viewItem, setViewItem] = useState<StockItem | null>(null);
+
+  // Password modal state
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ action: ModalAction; id?: string; data?: StockItem } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,13 +63,35 @@ const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, manag
     setName(''); setQuantity(0); setCostPrice(0); setSellingPrice(0); setThreshold(5); setImageUrl('');
   };
 
-  const startEdit = (item: StockItem) => {
-    const pass = prompt("Enter manager password to edit:");
-    if (pass === managerPassword) {
-      setEditingId(item.id);
-      setEditForm({ ...item });
+  const requestEdit = (item: StockItem) => {
+    setPendingAction({ action: 'edit', id: item.id, data: item });
+    setPasswordModalOpen(true);
+  };
+
+  const requestDelete = (id: string) => {
+    setPendingAction({ action: 'delete', id });
+    setPasswordModalOpen(true);
+  };
+
+  const handlePasswordConfirm = (password: string) => {
+    if (password === managerPassword) {
+      if (pendingAction?.action === 'edit' && pendingAction.data) {
+        setEditingId(pendingAction.id!);
+        setEditForm({ ...pendingAction.data });
+      } else if (pendingAction?.action === 'delete' && pendingAction.id) {
+        onDelete(pendingAction.id);
+      }
+      setPasswordModalOpen(false);
+      setPendingAction(null);
     } else {
-      alert("Incorrect password.");
+      // Wrong password - modal will show error
+      const modal = document.querySelector('[class*="animate-in"]') as HTMLElement;
+      if (modal) {
+        const input = modal.querySelector('input');
+        if (input) {
+          (input as HTMLInputElement).style.borderColor = '#ef4444';
+        }
+      }
     }
   };
 
@@ -87,6 +116,18 @@ const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, manag
 
   return (
     <div className="space-y-8">
+      <PasswordModal
+        isOpen={passwordModalOpen}
+        onClose={() => {
+          setPasswordModalOpen(false);
+          setPendingAction(null);
+        }}
+        onConfirm={handlePasswordConfirm}
+        title="Manager Authentication"
+        message="Enter your PIN to confirm this action"
+        confirmText="Verify"
+      />
+
       {viewItem && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={() => setViewItem(null)}>
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
@@ -196,10 +237,10 @@ const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, manag
                   {item.imageUrl ? <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><PackageIcon /></div>}
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                  <button onClick={() => startEdit(item)} className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-blue-600 hover:text-white transition-colors" title="Edit">
+                  <button onClick={() => requestEdit(item)} className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-blue-600 hover:text-white transition-colors" title="Edit (PIN required)">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeWidth={2}/></svg>
                   </button>
-                  <button onClick={() => onDelete(item.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-colors" title="Delete Stock (PIN required)">
+                  <button onClick={() => requestDelete(item.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-colors" title="Delete (PIN required)">
                     <TrashIcon className="w-4 h-4" />
                   </button>
                 </div>
