@@ -1,7 +1,6 @@
 // File System Access API service for automatic device storage sync
 // Note: File System Access API is only supported in Chrome/Edge browsers
 
-// Extend Window interface for TypeScript
 declare global {
   interface Window {
     showDirectoryPicker?: (options?: {
@@ -57,13 +56,12 @@ interface FileSystemWritableFileStream extends WritableStream {
 
 let zionRecordsDir: FileSystemDirectoryHandle | null = null;
 let permissionGranted = false;
+let firstSyncComplete = false;
 
-// Check if File System Access API is supported
 export function isFileSystemAccessSupported(): boolean {
   return typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
 }
 
-// Request storage permission and open directory
 export async function requestStorageAccess(): Promise<boolean> {
   if (!isFileSystemAccessSupported()) {
     console.log('File System Access API not supported, using fallback sync');
@@ -94,7 +92,7 @@ export function getZionRecordsDir(): FileSystemDirectoryHandle | null {
   return zionRecordsDir;
 }
 
-export async function saveToDevice(filename: string, data: string | Blob): Promise<boolean> {
+async function saveToDevice(filename: string, data: string | Blob): Promise<boolean> {
   if (!zionRecordsDir || !permissionGranted) {
     console.warn('No storage access, cannot save to device');
     return false;
@@ -111,7 +109,6 @@ export async function saveToDevice(filename: string, data: string | Blob): Promi
     }
     
     await writable.close();
-    console.log('Saved ' + filename + ' to device');
     return true;
   } catch (error) {
     console.error('Failed to save ' + filename + ':', error);
@@ -129,7 +126,6 @@ export async function loadFromDevice(filename: string): Promise<string | null> {
     const file = await fileHandle.getFile();
     return await file.text();
   } catch (error) {
-    console.log('File ' + filename + ' not found on device');
     return null;
   }
 }
@@ -155,12 +151,6 @@ export function isDeviceSyncEnabled(): boolean {
   return permissionGranted && zionRecordsDir !== null;
 }
 
-export async function exportToDevice(data: Record<string, unknown>, filename: string): Promise<boolean> {
-  const jsonData = JSON.stringify(data, null, 2);
-  return saveToDevice(filename, jsonData);
-}
-
-// Generate HTML content for browser viewing
 function generateHTMLReport(data: {
   sales: unknown[];
   stock: unknown[];
@@ -209,7 +199,7 @@ function generateHTMLReport(data: {
   <div class="container">
     <div class="header">
       <h1>ZION Pro</h1>
-      <p class="subtitle">${data.businessName || 'Business Report'} - Generated on ${data.exportedAt || new Date().toLocaleString()}</p>
+      <p class="subtitle">${data.businessName || 'Business Report'} - Updated: ${data.exportedAt || new Date().toLocaleString()}</p>
     </div>
     
     <div class="stats">
@@ -314,7 +304,6 @@ function generateHTMLReport(data: {
 </html>`;
 }
 
-// Create a backup with both JSON and HTML formats
 export async function createDeviceBackup(data: {
   sales: unknown[];
   stock: unknown[];
@@ -322,36 +311,45 @@ export async function createDeviceBackup(data: {
   expenses: unknown[];
   businessName?: string;
 }): Promise<boolean> {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  if (!permissionGranted || !zionRecordsDir) {
+    return false;
+  }
+
   const exportedAt = new Date().toLocaleString();
-  
-  // Save individual JSON files
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+  // Always update the main files
   await saveToDevice('sales.json', JSON.stringify(data.sales, null, 2));
   await saveToDevice('stock.json', JSON.stringify(data.stock, null, 2));
   await saveToDevice('debts.json', JSON.stringify(data.debts, null, 2));
   await saveToDevice('expenses.json', JSON.stringify(data.expenses, null, 2));
   
-  // Save complete backup JSON
-  const backupData = {
-    sales: data.sales,
-    stock: data.stock,
-    debts: data.debts,
-    expenses: data.expenses,
-    exportedAt: exportedAt,
-    appVersion: '1.0.0'
-  };
-  
-  await exportToDevice(backupData, 'zion_backup_' + timestamp + '.json');
-  
-  // Save HTML report that can be opened in browser
+  // Update main HTML report (always the same filename)
   const htmlReport = generateHTMLReport({
     ...data,
     exportedAt: exportedAt
   });
-  
-  await saveToDevice('zion_report_' + timestamp + '.html', htmlReport);
-  await saveToDevice('zion_report_latest.html', htmlReport);
-  
+  await saveToDevice('zion_report.html', htmlReport);
+
+  // Only create timestamped backup on first sync or if explicitly requested
+  if (!firstSyncComplete) {
+    const backupData = {
+      sales: data.sales,
+      stock: data.stock,
+      debts: data.debts,
+      expenses: data.expenses,
+      exportedAt: exportedAt,
+      appVersion: '1.0.0'
+    };
+    await saveToDevice('zion_backup.json', JSON.stringify(backupData, null, 2));
+    await saveToDevice('zion_backup_' + timestamp + '.json', JSON.stringify(backupData, null, 2));
+    await saveToDevice('zion_report_initial.html', htmlReport);
+    firstSyncComplete = true;
+    console.log('Initial sync complete - all files created');
+  } else {
+    console.log('Sync updated - zion_report.html updated');
+  }
+
   return true;
 }
 
