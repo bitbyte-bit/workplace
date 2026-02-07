@@ -149,9 +149,9 @@ const App: React.FC = () => {
   // Trigger auto sync when data changes
   const triggerSync = useCallback(() => {
     if (deviceSyncEnabled) {
-      triggerAutoSync({ sales, stock, debts, expenses });
+      triggerAutoSync({ sales, stock, debts, expenses, businessName: user?.businessName });
     }
-  }, [sales, stock, debts, expenses, deviceSyncEnabled]);
+  }, [sales, stock, debts, expenses, deviceSyncEnabled, user?.businessName]);
 
   useEffect(() => {
     const alarmInterval = setInterval(() => {

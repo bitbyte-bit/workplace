@@ -71,7 +71,6 @@ export async function requestStorageAccess(): Promise<boolean> {
   }
 
   try {
-    // Request directory access
     zionRecordsDir = await window.showDirectoryPicker!({
       id: 'zion-records-dir',
       mode: 'readwrite',
@@ -79,25 +78,22 @@ export async function requestStorageAccess(): Promise<boolean> {
     });
 
     permissionGranted = true;
-    console.log('✅ Storage access granted for:', zionRecordsDir?.name || 'Zion Records');
+    console.log('Storage access granted for:', zionRecordsDir?.name || 'Zion Records');
     return true;
   } catch (error) {
-    console.error('❌ Failed to get storage access:', error);
+    console.error('Failed to get storage access:', error);
     return false;
   }
 }
 
-// Check if we have permission
 export function hasStoragePermission(): boolean {
   return permissionGranted && zionRecordsDir !== null;
 }
 
-// Get the directory handle
 export function getZionRecordsDir(): FileSystemDirectoryHandle | null {
   return zionRecordsDir;
 }
 
-// Save data to the device
 export async function saveToDevice(filename: string, data: string | Blob): Promise<boolean> {
   if (!zionRecordsDir || !permissionGranted) {
     console.warn('No storage access, cannot save to device');
@@ -115,15 +111,14 @@ export async function saveToDevice(filename: string, data: string | Blob): Promi
     }
     
     await writable.close();
-    console.log(`✅ Saved ${filename} to device`);
+    console.log('Saved ' + filename + ' to device');
     return true;
   } catch (error) {
-    console.error(`❌ Failed to save ${filename}:`, error);
+    console.error('Failed to save ' + filename + ':', error);
     return false;
   }
 }
 
-// Load data from the device
 export async function loadFromDevice(filename: string): Promise<string | null> {
   if (!zionRecordsDir || !permissionGranted) {
     return null;
@@ -134,12 +129,11 @@ export async function loadFromDevice(filename: string): Promise<string | null> {
     const file = await fileHandle.getFile();
     return await file.text();
   } catch (error) {
-    console.log(`File ${filename} not found on device`);
+    console.log('File ' + filename + ' not found on device');
     return null;
   }
 }
 
-// List files in the directory
 export async function listDeviceFiles(): Promise<string[]> {
   if (!zionRecordsDir || !permissionGranted) {
     return [];
@@ -157,43 +151,210 @@ export async function listDeviceFiles(): Promise<string[]> {
   }
 }
 
-// Check if device sync is enabled
 export function isDeviceSyncEnabled(): boolean {
   return permissionGranted && zionRecordsDir !== null;
 }
 
-// Export data to device as JSON
 export async function exportToDevice(data: Record<string, unknown>, filename: string): Promise<boolean> {
   const jsonData = JSON.stringify(data, null, 2);
   return saveToDevice(filename, jsonData);
 }
 
-// Create a backup of all data
+// Generate HTML content for browser viewing
+function generateHTMLReport(data: {
+  sales: unknown[];
+  stock: unknown[];
+  debts: unknown[];
+  expenses: unknown[];
+  businessName?: string;
+  exportedAt?: string;
+}): string {
+  const salesTotal = data.sales.reduce((acc: number, s: any) => acc + (Number(s.price) * Number(s.quantity)), 0);
+  const totalStockValue = data.stock.reduce((acc: number, item: any) => acc + (Number(item.quantity) * Number(item.costPrice)), 0);
+  const unpaidDebts = data.debts.filter((d: any) => !d.isPaid).reduce((acc: number, d: any) => acc + Number(d.amount), 0);
+  const totalExpenses = data.expenses.reduce((acc: number, e: any) => acc + Number(e.amount), 0);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZION Pro - Business Report</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { background: white; border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+    .header h1 { color: #2563eb; font-size: 2.5rem; font-weight: 800; }
+    .header .subtitle { color: #64748b; margin-top: 5px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+    .stat-card h3 { color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+    .stat-card .value { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
+    .stat-card.sales .value { color: #10b981; }
+    .stat-card.stock .value { color: #3b82f6; }
+    .stat-card.debts .value { color: #f59e0b; }
+    .stat-card.expenses .value { color: #ef4444; }
+    .section { background: white; border-radius: 20px; padding: 25px; margin-bottom: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); }
+    .section h2 { color: #1e293b; font-size: 1.25rem; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    th { color: #64748b; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { color: #334155; }
+    .empty { text-align: center; padding: 40px; color: #94a3b8; }
+    .footer { text-align: center; color: white; padding: 20px; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ZION Pro</h1>
+      <p class="subtitle">${data.businessName || 'Business Report'} - Generated on ${data.exportedAt || new Date().toLocaleString()}</p>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-card sales">
+        <h3>Total Sales</h3>
+        <div class="value">$${salesTotal.toLocaleString()}</div>
+      </div>
+      <div class="stat-card stock">
+        <h3>Stock Value</h3>
+        <div class="value">$${totalStockValue.toLocaleString()}</div>
+      </div>
+      <div class="stat-card debts">
+        <h3>Unpaid Debts</h3>
+        <div class="value">$${unpaidDebts.toLocaleString()}</div>
+      </div>
+      <div class="stat-card expenses">
+        <h3>Total Expenses</h3>
+        <div class="value">$${totalExpenses.toLocaleString()}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Sales (${data.sales.length} records)</h2>
+      ${data.sales.length > 0 ? `
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th>Category</th></tr>
+        </thead>
+        <tbody>
+          ${data.sales.map((s: any) => `<tr>
+            <td>${new Date(s.date).toLocaleDateString()}</td>
+            <td>${s.itemName}</td>
+            <td>${s.quantity}</td>
+            <td>$${Number(s.price).toLocaleString()}</td>
+            <td>$${(Number(s.price) * Number(s.quantity)).toLocaleString()}</td>
+            <td>${s.category || '-'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty">No sales recorded</div>'}
+    </div>
+
+    <div class="section">
+      <h2>Stock Inventory (${data.stock.length} items)</h2>
+      ${data.stock.length > 0 ? `
+      <table>
+        <thead>
+          <tr><th>Item</th><th>Qty</th><th>Cost</th><th>Selling</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          ${data.stock.map((item: any) => `<tr>
+            <td>${item.name}</td>
+            <td>${item.quantity}</td>
+            <td>$${Number(item.costPrice).toLocaleString()}</td>
+            <td>$${Number(item.sellingPrice).toLocaleString()}</td>
+            <td>$${(Number(item.quantity) * Number(item.costPrice)).toLocaleString()}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty">No stock items</div>'}
+    </div>
+
+    <div class="section">
+      <h2>Debts (${data.debts.length} records)</h2>
+      ${data.debts.length > 0 ? `
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Debtor</th><th>Amount</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          ${data.debts.map((d: any) => `<tr>
+            <td>${new Date(d.date).toLocaleDateString()}</td>
+            <td>${d.debtorName}</td>
+            <td>$${Number(d.amount).toLocaleString()}</td>
+            <td>${d.isPaid ? '<span style="color:#10b981">Paid</span>' : '<span style="color:#ef4444">Unpaid</span>'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty">No debts recorded</div>'}
+    </div>
+
+    <div class="section">
+      <h2>Expenses (${data.expenses.length} records)</h2>
+      ${data.expenses.length > 0 ? `
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Category</th><th>Amount</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          ${data.expenses.map((e: any) => `<tr>
+            <td>${new Date(e.date).toLocaleDateString()}</td>
+            <td>${e.category}</td>
+            <td style="color:#ef4444">-$${Number(e.amount).toLocaleString()}</td>
+            <td>${e.description}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : '<div class="empty">No expenses recorded</div>'}
+    </div>
+
+    <div class="footer">
+      <p>ZION Pro - Business Management System</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+// Create a backup with both JSON and HTML formats
 export async function createDeviceBackup(data: {
   sales: unknown[];
   stock: unknown[];
   debts: unknown[];
   expenses: unknown[];
+  businessName?: string;
 }): Promise<boolean> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const exportedAt = new Date().toLocaleString();
   
-  // Save individual files
+  // Save individual JSON files
   await saveToDevice('sales.json', JSON.stringify(data.sales, null, 2));
   await saveToDevice('stock.json', JSON.stringify(data.stock, null, 2));
   await saveToDevice('debts.json', JSON.stringify(data.debts, null, 2));
   await saveToDevice('expenses.json', JSON.stringify(data.expenses, null, 2));
   
-  // Save complete backup
+  // Save complete backup JSON
   const backupData = {
-    ...data,
-    exportedAt: new Date().toISOString(),
+    sales: data.sales,
+    stock: data.stock,
+    debts: data.debts,
+    expenses: data.expenses,
+    exportedAt: exportedAt,
     appVersion: '1.0.0'
   };
   
-  return await exportToDevice(backupData, `zion_backup_${timestamp}.json`);
+  await exportToDevice(backupData, 'zion_backup_' + timestamp + '.json');
+  
+  // Save HTML report that can be opened in browser
+  const htmlReport = generateHTMLReport({
+    ...data,
+    exportedAt: exportedAt
+  });
+  
+  await saveToDevice('zion_report_' + timestamp + '.html', htmlReport);
+  await saveToDevice('zion_report_latest.html', htmlReport);
+  
+  return true;
 }
 
-// Initialize storage on app load
 export async function initializeStorage(): Promise<{
   supported: boolean;
   accessGranted: boolean;
@@ -212,7 +373,6 @@ export async function initializeStorage(): Promise<{
   };
 }
 
-// Sync callback type for automatic sync
 export type SyncCallback = (data: {
   sales: unknown[];
   stock: unknown[];
@@ -222,17 +382,16 @@ export type SyncCallback = (data: {
 
 let syncCallback: SyncCallback | null = null;
 
-// Register automatic sync callback
 export function onDataChange(callback: SyncCallback): void {
   syncCallback = callback;
 }
 
-// Trigger automatic sync to device
 export async function triggerAutoSync(data: {
   sales: unknown[];
   stock: unknown[];
   debts: unknown[];
   expenses: unknown[];
+  businessName?: string;
 }): Promise<boolean> {
   if (!isDeviceSyncEnabled()) {
     return false;
