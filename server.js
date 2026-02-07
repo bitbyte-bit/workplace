@@ -127,6 +127,16 @@ async function initDatabase() {
       date INTEGER,
       frequency TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE,
+      password TEXT,
+      fullName TEXT,
+      businessName TEXT,
+      phone TEXT,
+      createdAt INTEGER
+    );
   `);
   
   saveDatabase();
@@ -323,6 +333,144 @@ app.delete('/api/expenses/:id', (req, res) => {
     db.run('DELETE FROM expenses WHERE id = ?', [req.params.id]);
     triggerSave();
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========== USER AUTHENTICATION ENDPOINTS ==========
+
+// Register new user
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const { id, email, password, fullName, businessName, phone } = req.body;
+    
+    // Check if email already exists
+    const checkStmt = db.prepare('SELECT id FROM users WHERE email = ?');
+    checkStmt.bind([email]);
+    if (checkStmt.step()) {
+      checkStmt.free();
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+    checkStmt.free();
+    
+    // Insert new user
+    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)', [
+      id, email, password, fullName, businessName, phone, Date.now()
+    ]);
+    
+    triggerSave();
+    
+    // Return user without password
+    res.json({
+      success: true,
+      user: { id, email, fullName, businessName, phone }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Login user
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    const stmt = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?');
+    stmt.bind([email, password]);
+    
+    if (stmt.step()) {
+      const user = stmt.getAsObject();
+      stmt.free();
+      
+      // Return user without password
+      const { password: _, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
+    } else {
+      stmt.free();
+      res.status(401).json({ error: 'Invalid email or password' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get current user profile
+app.get('/api/auth/profile', (req, res) => {
+  try {
+    const userId = req.query.userId;
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+    
+    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    stmt.bind([userId]);
+    
+    if (stmt.step()) {
+      const user = stmt.getAsObject();
+      stmt.free();
+      const { password: _, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
+    } else {
+      stmt.free();
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user profile
+app.put('/api/auth/profile', (req, res) => {
+  try {
+    const { userId, fullName, businessName, phone, currentPassword, newPassword } = req.body;
+    
+    // If changing password, verify current password
+    if (newPassword) {
+      const checkStmt = db.prepare('SELECT password FROM users WHERE id = ?');
+      checkStmt.bind([userId]);
+      if (checkStmt.step()) {
+        const user = checkStmt.getAsObject();
+        if (user.password !== currentPassword) {
+          checkStmt.free();
+          return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+      }
+      checkStmt.free();
+      
+      db.run('UPDATE users SET fullName=?, businessName=?, phone=?, password=? WHERE id=?', [
+        fullName, businessName, phone, newPassword, userId
+      ]);
+    } else {
+      db.run('UPDATE users SET fullName=?, businessName=?, phone=? WHERE id=?', [
+        fullName, businessName, phone, userId
+      ]);
+    }
+    
+    triggerSave();
+    
+    // Return updated user
+    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    stmt.bind([userId]);
+    if (stmt.step()) {
+      const user = stmt.getAsObject();
+      stmt.free();
+      const { password: _, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check if any user exists
+app.get('/api/auth/check', (req, res) => {
+  try {
+    const stmt = db.prepare('SELECT id FROM users LIMIT 1');
+    stmt.bind([]);
+    const hasUser = stmt.step();
+    stmt.free();
+    res.json({ hasUser });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

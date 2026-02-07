@@ -175,6 +175,83 @@ export async function fetchAllExpenses(): Promise<Expense[]> {
   return apiGet<Expense[]>('/expenses');
 }
 
+// ========== USER AUTHENTICATION ==========
+
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  businessName: string;
+  phone: string;
+  createdAt?: number;
+}
+
+export async function checkUserExists(): Promise<boolean> {
+  const response = await fetch(`${API_BASE}/auth/check`);
+  if (!response.ok) throw new Error('Auth check failed');
+  const data = await response.json();
+  return data.hasUser;
+}
+
+export async function registerUser(
+  email: string,
+  password: string,
+  fullName: string,
+  businessName: string,
+  phone: string
+): Promise<{ user: User }> {
+  const id = Math.random().toString(36).substr(2, 9);
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, email, password, fullName, businessName, phone })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Registration failed');
+  }
+  return response.json();
+}
+
+export async function loginUser(email: string, password: string): Promise<{ user: User }> {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Login failed');
+  }
+  return response.json();
+}
+
+export async function getUserProfile(userId: string): Promise<{ user: User }> {
+  const response = await fetch(`${API_BASE}/auth/profile?userId=${userId}`);
+  if (!response.ok) throw new Error('Failed to get profile');
+  return response.json();
+}
+
+export async function updateUserProfile(
+  userId: string,
+  fullName: string,
+  businessName: string,
+  phone: string,
+  currentPassword?: string,
+  newPassword?: string
+): Promise<{ user: User }> {
+  const response = await fetch(`${API_BASE}/auth/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, fullName, businessName, phone, currentPassword, newPassword })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Update failed');
+  }
+  return response.json();
+}
+
 // Summary function
 export async function fetchSummary() {
   return apiGet<{
