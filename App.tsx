@@ -120,7 +120,7 @@ const App: React.FC = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        await db.initLocalDB();
+        await db.initServerDB();
         const s = await db.fetchAllSales();
         const st = await db.fetchAllStock();
         const d = await db.fetchAllDebts();

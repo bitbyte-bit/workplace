@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FolderIcon, FileIcon, DownloadIcon, UploadIcon, TrashIcon, RefreshIcon } from './Icons';
-import { exportAllData, importData, resetDatabase } from '../services/db';
+import { exportAllData, importData, forceSync } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface RecordsManagerProps {
@@ -10,6 +10,7 @@ interface RecordsManagerProps {
 export default function RecordsManager({ onClose }: RecordsManagerProps) {
   const { colors } = useTheme();
   const [importing, setImporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const folders = [
@@ -22,7 +23,7 @@ export default function RecordsManager({ onClose }: RecordsManagerProps) {
   const handleExport = async () => {
     try {
       await exportAllData();
-      setMessage({ text: 'Records exported successfully!', type: 'success' });
+      setMessage({ text: 'Records exported to device!', type: 'success' });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       setMessage({ text: 'Failed to export records', type: 'error' });
@@ -48,9 +49,17 @@ export default function RecordsManager({ onClose }: RecordsManagerProps) {
     }
   };
 
-  const handleReset = () => {
-    if (confirm('Are you sure you want to delete all records? This cannot be undone.')) {
-      resetDatabase();
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await forceSync();
+      setMessage({ text: 'Data synced to SQLite & device!', type: 'success' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      setMessage({ text: 'Sync failed', type: 'error' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -76,7 +85,7 @@ export default function RecordsManager({ onClose }: RecordsManagerProps) {
             </div>
             <div>
               <h2 className="text-lg font-black" style={{ color: colors.text }}>Zion Records</h2>
-              <p className="text-xs" style={{ color: colors.textMuted }}>Local data management</p>
+              <p className="text-xs" style={{ color: colors.textMuted }}>SQLite + File Backup</p>
             </div>
           </div>
           <button 
@@ -134,7 +143,7 @@ export default function RecordsManager({ onClose }: RecordsManagerProps) {
               style={{ backgroundColor: colors.primary, color: colors.textInverse }}
             >
               <DownloadIcon className="w-4 h-4" />
-              Export All
+              Export JSON
             </button>
             
             <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all hover:scale-105 active:scale-95 cursor-pointer"
@@ -152,14 +161,15 @@ export default function RecordsManager({ onClose }: RecordsManagerProps) {
             </label>
           </div>
 
-          {/* Reset */}
+          {/* Sync */}
           <button
-            onClick={handleReset}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all hover:scale-105 active:scale-95 mt-4"
-            style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}
+            onClick={handleSync}
+            disabled={syncing}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all hover:scale-105 active:scale-95"
+            style={{ backgroundColor: `${colors.primary}15`, color: colors.primary }}
           >
-            <TrashIcon className="w-4 h-4" />
-            Reset All Data
+            <RefreshIcon className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Now'}
           </button>
 
           {/* Info */}
@@ -168,8 +178,8 @@ export default function RecordsManager({ onClose }: RecordsManagerProps) {
             style={{ backgroundColor: colors.backgroundAlt, color: colors.textMuted }}
           >
             <p className="flex items-center gap-2">
-              <RefreshIcon className="w-4 h-4" />
-              Data is stored locally in your browser. Use Export to backup your records.
+              <FolderIcon className="w-4 h-4" />
+              Data saved to SQLite database & "zion records" folder
             </p>
           </div>
         </div>

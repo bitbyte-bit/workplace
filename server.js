@@ -17,7 +17,62 @@ app.use(express.json());
 
 // Database setup
 const dbPath = path.join(__dirname, 'database.sqlite');
+const recordsFolder = path.join(__dirname, 'zion records');
+
+// Ensure zion records folder exists
+if (!fs.existsSync(recordsFolder)) {
+  fs.mkdirSync(recordsFolder, { recursive: true });
+}
+
 let db = null;
+
+// File sync functions
+function syncToDevice() {
+  try {
+    // Export all data
+    const sales = db.exec('SELECT * FROM sales')[0]?.values || [];
+    const stock = db.exec('SELECT * FROM stock')[0]?.values || [];
+    const debts = db.exec('SELECT * FROM debts')[0]?.values || [];
+    const expenses = db.exec('SELECT * FROM expenses')[0]?.values || [];
+
+    // Get column names
+    const salesCols = db.exec('PRAGMA table_info(sales)')[0]?.columns || [];
+    const stockCols = db.exec('PRAGMA table_info(stock)')[0]?.columns || [];
+    const debtsCols = db.exec('PRAGMA table_info(debts)')[0]?.columns || [];
+    const expensesCols = db.exec('PRAGMA table_info(expenses)')[0]?.columns || [];
+
+    // Helper to convert rows to objects
+    const rowsToObjects = (rows, cols) => rows.map(row => {
+      const obj = {};
+      cols.forEach((col, i) => obj[col] = row[i]);
+      return obj;
+    });
+
+    const data = {
+      sales: rowsToObjects(sales, salesCols),
+      stock: rowsToObjects(stock, stockCols),
+      debts: rowsToObjects(debts, debtsCols),
+      expenses: rowsToObjects(expenses, expensesCols),
+      savedAt: new Date().toISOString(),
+    };
+
+    // Save main backup file
+    const backupPath = path.join(recordsFolder, 'zion_backup.json');
+    fs.writeFileSync(backupPath, JSON.stringify(data, null, 2));
+
+    // Save individual category files
+    fs.writeFileSync(path.join(recordsFolder, 'sales.json'), JSON.stringify(data.sales, null, 2));
+    fs.writeFileSync(path.join(recordsFolder, 'stock.json'), JSON.stringify(data.stock, null, 2));
+    fs.writeFileSync(path.join(recordsFolder, 'debts.json'), JSON.stringify(data.debts, null, 2));
+    fs.writeFileSync(path.join(recordsFolder, 'expenses.json'), JSON.stringify(data.expenses, null, 2));
+
+    console.log('✅ Data synced to zion records folder');
+    return true;
+  } catch (error) {
+    console.error('❌ Sync failed:', error);
+    return false;
+  }
+}
 
 async function initDatabase() {
   const SQL = await initSqlJs();
@@ -75,13 +130,24 @@ async function initDatabase() {
   `);
   
   saveDatabase();
-  console.log('Connected to SQLite database');
+  syncToDevice(); // Initial sync
+  console.log('✅ Connected to SQLite database');
 }
 
 function saveDatabase() {
   const data = db.export();
   const buffer = Buffer.from(data);
   fs.writeFileSync(dbPath, buffer);
+}
+
+// Auto-save debounce
+let saveTimeout = null;
+function triggerSave() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveDatabase();
+    syncToDevice();
+  }, 2000); // Auto-save 2 seconds after changes
 }
 
 // ============= API ROUTES =============
@@ -105,7 +171,7 @@ app.post('/api/sales', (req, res) => {
   try {
     const { id, itemName, category, quantity, price, cost, date } = req.body;
     db.run('INSERT INTO sales VALUES (?, ?, ?, ?, ?, ?, ?)', [id, itemName, category, quantity, price, cost, date]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -115,7 +181,7 @@ app.post('/api/sales', (req, res) => {
 app.delete('/api/sales/:id', (req, res) => {
   try {
     db.run('DELETE FROM sales WHERE id = ?', [req.params.id]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -145,7 +211,7 @@ app.post('/api/stock', (req, res) => {
     db.run('INSERT OR REPLACE INTO stock VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
       id, name, quantity, costPrice, sellingPrice, lastUpdated, lowStockThreshold, imageUrl || null, JSON.stringify(costHistory || [])
     ]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -158,7 +224,7 @@ app.put('/api/stock/:id', (req, res) => {
     db.run('UPDATE stock SET name=?, quantity=?, costPrice=?, sellingPrice=?, lastUpdated=?, lowStockThreshold=?, imageUrl=?, costHistory=? WHERE id=?', [
       name, quantity, costPrice, sellingPrice, Date.now(), lowStockThreshold, imageUrl || null, JSON.stringify(costHistory || []), req.params.id
     ]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -168,7 +234,7 @@ app.put('/api/stock/:id', (req, res) => {
 app.delete('/api/stock/:id', (req, res) => {
   try {
     db.run('DELETE FROM stock WHERE id = ?', [req.params.id]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -196,7 +262,7 @@ app.post('/api/debts', (req, res) => {
   try {
     const { id, debtorName, phoneNumber, amount, description, isPaid, date } = req.body;
     db.run('INSERT INTO debts VALUES (?, ?, ?, ?, ?, ?, ?)', [id, debtorName, phoneNumber, amount, description, isPaid ? 1 : 0, date]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -209,7 +275,7 @@ app.put('/api/debts/:id', (req, res) => {
     db.run('UPDATE debts SET debtorName=?, phoneNumber=?, amount=?, description=?, isPaid=? WHERE id=?', [
       debtorName, phoneNumber, amount, description, isPaid ? 1 : 0, req.params.id
     ]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -219,7 +285,7 @@ app.put('/api/debts/:id', (req, res) => {
 app.delete('/api/debts/:id', (req, res) => {
   try {
     db.run('DELETE FROM debts WHERE id = ?', [req.params.id]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -245,7 +311,7 @@ app.post('/api/expenses', (req, res) => {
   try {
     const { id, category, amount, description, date, frequency } = req.body;
     db.run('INSERT INTO expenses VALUES (?, ?, ?, ?, ?, ?)', [id, category, amount, description, date, frequency]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -255,7 +321,7 @@ app.post('/api/expenses', (req, res) => {
 app.delete('/api/expenses/:id', (req, res) => {
   try {
     db.run('DELETE FROM expenses WHERE id = ?', [req.params.id]);
-    saveDatabase();
+    triggerSave();
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -285,15 +351,111 @@ app.get('/api/summary', (req, res) => {
   }
 });
 
-// ============= STATIC FILE SERVING (SPA) =============
+// Manual sync endpoint
+app.post('/api/sync', (req, res) => {
+  saveDatabase();
+  const success = syncToDevice();
+  res.json({ success });
+});
+
+// Export/Import endpoints
+app.get('/api/export', (req, res) => {
+  try {
+    const sales = db.exec('SELECT * FROM sales')[0]?.values || [];
+    const stock = db.exec('SELECT * FROM stock')[0]?.values || [];
+    const debts = db.exec('SELECT * FROM debts')[0]?.values || [];
+    const expenses = db.exec('SELECT * FROM expenses')[0]?.values || [];
+
+    const salesCols = db.exec('PRAGMA table_info(sales)')[0]?.columns || [];
+    const stockCols = db.exec('PRAGMA table_info(stock)')[0]?.columns || [];
+    const debtsCols = db.exec('PRAGMA table_info(debts)')[0]?.columns || [];
+    const expensesCols = db.exec('PRAGMA table_info(expenses)')[0]?.columns || [];
+
+    const rowsToObjects = (rows, cols) => rows.map(row => {
+      const obj = {};
+      cols.forEach((col, i) => obj[col] = row[i]);
+      return obj;
+    });
+
+    const data = {
+      sales: rowsToObjects(sales, salesCols),
+      stock: rowsToObjects(stock, stockCols),
+      debts: rowsToObjects(debts, debtsCols),
+      expenses: rowsToObjects(expenses, expensesCols),
+      exportedAt: new Date().toISOString(),
+    };
+
+    res.setHeader('Content-Disposition', `attachment; filename="zion_records_${Date.now()}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/import', (req, res) => {
+  try {
+    const { sales, stock, debts, expenses } = req.body;
+
+    // Clear existing data
+    db.run('DELETE FROM sales');
+    db.run('DELETE FROM stock');
+    db.run('DELETE FROM debts');
+    db.run('DELETE FROM expenses');
+
+    // Import sales
+    if (sales && Array.isArray(sales)) {
+      for (const sale of sales) {
+        db.run('INSERT INTO sales VALUES (?, ?, ?, ?, ?, ?, ?)', [
+          sale.id, sale.itemName, sale.category, sale.quantity, sale.price, sale.cost, sale.date
+        ]);
+      }
+    }
+
+    // Import stock
+    if (stock && Array.isArray(stock)) {
+      for (const item of stock) {
+        db.run('INSERT OR REPLACE INTO stock VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+          item.id, item.name, item.quantity, item.costPrice, item.sellingPrice,
+          item.lastUpdated, item.lowStockThreshold, item.imageUrl || null,
+          JSON.stringify(item.costHistory || [])
+        ]);
+      }
+    }
+
+    // Import debts
+    if (debts && Array.isArray(debts)) {
+      for (const debt of debts) {
+        db.run('INSERT INTO debts VALUES (?, ?, ?, ?, ?, ?, ?)', [
+          debt.id, debt.debtorName, debt.phoneNumber, debt.amount, debt.description,
+          debt.isPaid ? 1 : 0, debt.date
+        ]);
+      }
+    }
+
+    // Import expenses
+    if (expenses && Array.isArray(expenses)) {
+      for (const expense of expenses) {
+        db.run('INSERT INTO expenses VALUES (?, ?, ?, ?, ?, ?)', [
+          expense.id, expense.category, expense.amount, expense.description, expense.date, expense.frequency
+        ]);
+      }
+    }
+
+    saveDatabase();
+    syncToDevice();
+    res.json({ success: true, message: 'Data imported successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Serve static files from the dist folder
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
 
-// Handle SPA routing - serve index.html for all non-API routes
+// Handle SPA routing
 app.get('*', (req, res) => {
-  // Don't serve index.html for API routes
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
@@ -319,8 +481,8 @@ app.get('*', (req, res) => {
 // Start server
 initDatabase().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`API available at http://localhost:${PORT}/api`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📁 Data synced to: ${recordsFolder}`);
   });
 }).catch((err) => {
   console.error('Failed to initialize database:', err);

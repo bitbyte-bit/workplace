@@ -1,0 +1,16 @@
+{
+  "sales": [],
+  "stock": [
+    {
+      "cid": "ryvnr83uq",
+      "name": "oraimo headsets",
+      "type": 4,
+      "notnull": 6000,
+      "dflt_value": 10000,
+      "pk": 1770358522442
+    }
+  ],
+  "debts": [],
+  "expenses": [],
+  "savedAt": "2026-02-07T07:49:47.684Z"
+}
