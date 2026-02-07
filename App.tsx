@@ -13,6 +13,7 @@ import WarningStatusBar from './components/WarningStatusBar';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import RecordsManager from './components/RecordsManager';
 import Auth from './components/Auth';
+import AdminDashboard from './components/AdminDashboard';
 import StoragePermission from './components/StoragePermission';
 import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
@@ -26,7 +27,8 @@ import {
   ExpenseIcon, 
   ReportsIcon,
   ClockIcon,
-  FolderIcon
+  FolderIcon,
+  ShieldIcon
 } from './components/Icons';
 
 interface SearchResult {
@@ -74,6 +76,8 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [adminId, setAdminId] = useState<string | null>(null);
   
   const [sales, setSales] = useState<Sale[]>([]);
   const [stock, setStock] = useState<StockItem[]>([]);
@@ -277,11 +281,33 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('zion_user');
+    localStorage.removeItem('zion_admin');
     setUser(null);
+    setAdminId(null);
+    setShowAdminDashboard(false);
     setSales([]);
     setStock([]);
     setDebts([]);
     setExpenses([]);
+  };
+
+  const handleAdminLogin = async (email: string, password: string) => {
+    try {
+      const { user: adminUser } = await db.loginAdmin(email, password);
+      setAdminId(adminUser.id);
+      localStorage.setItem('zion_admin', adminUser.id);
+      setShowAdminDashboard(true);
+      showNotification('Welcome, Administrator!', 'success');
+    } catch (error: any) {
+      showNotification(error.message || 'Admin login failed', 'error');
+      throw error;
+    }
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('zion_admin');
+    setAdminId(null);
+    setShowAdminDashboard(false);
   };
 
   const handleSale = async (newSale: Sale) => {
@@ -545,6 +571,12 @@ const App: React.FC = () => {
             />
           )}
           {activeTab === 'reports' && <Reports data={businessData} currency={currency} />}
+          {showAdminDashboard && adminId && (
+            <AdminDashboard 
+              adminId={adminId} 
+              onLogout={handleAdminLogout}
+            />
+          )}
         </main>
 
         <WarningStatusBar data={businessData} onNavigate={setActiveTab} />
@@ -562,8 +594,8 @@ const App: React.FC = () => {
   );
 };
 
-const NavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-[var(--color-primary)] text-[var(--color-text-inverse)] font-bold shadow-xl shadow-[var(--color-primary)]/20 scale-[1.02]' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-background-alt)] hover:text-[var(--color-text)]'}`}>
+const NavButton = ({ active, onClick, icon, label, className = '' }: any) => (
+  <button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-[var(--color-primary)] text-[var(--color-text-inverse)] font-bold shadow-xl shadow-[var(--color-primary)]/20 scale-[1.02]' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-background-alt)] hover:text-[var(--color-text)]'} ${className}`}>
     <span className="text-xl">{icon}</span>
     <span className="text-sm tracking-tight">{label}</span>
   </button>

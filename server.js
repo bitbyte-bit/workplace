@@ -29,19 +29,16 @@ let db = null;
 // File sync functions
 function syncToDevice() {
   try {
-    // Export all data
     const sales = db.exec('SELECT * FROM sales')[0]?.values || [];
     const stock = db.exec('SELECT * FROM stock')[0]?.values || [];
     const debts = db.exec('SELECT * FROM debts')[0]?.values || [];
     const expenses = db.exec('SELECT * FROM expenses')[0]?.values || [];
 
-    // Get column names
     const salesCols = db.exec('PRAGMA table_info(sales)')[0]?.columns || [];
     const stockCols = db.exec('PRAGMA table_info(stock)')[0]?.columns || [];
     const debtsCols = db.exec('PRAGMA table_info(debts)')[0]?.columns || [];
     const expensesCols = db.exec('PRAGMA table_info(expenses)')[0]?.columns || [];
 
-    // Helper to convert rows to objects
     const rowsToObjects = (rows, cols) => rows.map(row => {
       const obj = {};
       cols.forEach((col, i) => obj[col] = row[i]);
@@ -56,11 +53,9 @@ function syncToDevice() {
       savedAt: new Date().toISOString(),
     };
 
-    // Save main backup file
     const backupPath = path.join(recordsFolder, 'zion_backup.json');
     fs.writeFileSync(backupPath, JSON.stringify(data, null, 2));
 
-    // Save individual category files
     fs.writeFileSync(path.join(recordsFolder, 'sales.json'), JSON.stringify(data.sales, null, 2));
     fs.writeFileSync(path.join(recordsFolder, 'stock.json'), JSON.stringify(data.stock, null, 2));
     fs.writeFileSync(path.join(recordsFolder, 'debts.json'), JSON.stringify(data.debts, null, 2));
@@ -77,7 +72,6 @@ function syncToDevice() {
 async function initDatabase() {
   const SQL = await initSqlJs();
   
-  // Load existing database or create new one
   if (fs.existsSync(dbPath)) {
     const fileBuffer = fs.readFileSync(dbPath);
     db = new SQL.Database(fileBuffer);
@@ -85,7 +79,6 @@ async function initDatabase() {
     db = new SQL.Database();
   }
   
-  // Create tables
   db.run(`
     CREATE TABLE IF NOT EXISTS sales (
       id TEXT PRIMARY KEY,
@@ -135,12 +128,29 @@ async function initDatabase() {
       fullName TEXT,
       businessName TEXT,
       phone TEXT,
-      createdAt INTEGER
+      role TEXT DEFAULT 'user',
+      status TEXT DEFAULT 'active',
+      warningCount INTEGER DEFAULT 0,
+      lastWarningAt INTEGER,
+      suspendedAt INTEGER,
+      suspendedReason TEXT,
+      createdAt INTEGER,
+      lastLoginAt INTEGER
     );
   `);
   
+  // Create admin account if not exists
+  const adminCheck = db.exec("SELECT id FROM users WHERE email = 'zionpro@gmail.com'")[0]?.values || [];
+  if (adminCheck.length === 0) {
+    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+      'admin', 'zionpro@gmail.com', 'zionpro', 'System Administrator', 'ZION Pro', '', 
+      'admin', 'active', 0, null, null, null, Date.now(), null, null
+    ]);
+    console.log('✅ Admin account created: zionpro@gmail.com / zionpro');
+  }
+  
   saveDatabase();
-  syncToDevice(); // Initial sync
+  syncToDevice();
   console.log('✅ Connected to SQLite database');
 }
 
@@ -150,14 +160,13 @@ function saveDatabase() {
   fs.writeFileSync(dbPath, buffer);
 }
 
-// Auto-save debounce
 let saveTimeout = null;
 function triggerSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
     saveDatabase();
     syncToDevice();
-  }, 2000); // Auto-save 2 seconds after changes
+  }, 2000);
 }
 
 // ============= API ROUTES =============
@@ -338,14 +347,12 @@ app.delete('/api/expenses/:id', (req, res) => {
   }
 });
 
-// ========== USER AUTHENTICATION ENDPOINTS ==========
+// ========== USER AUTHENTICATION ==========
 
-// Register new user
 app.post('/api/auth/register', (req, res) => {
   try {
     const { id, email, password, fullName, businessName, phone } = req.body;
     
-    // Check if email already exists
     const checkStmt = db.prepare('SELECT id FROM users WHERE email = ?');
     checkStmt.bind([email]);
     if (checkStmt.step()) {
@@ -354,38 +361,49 @@ app.post('/api/auth/register', (req, res) => {
     }
     checkStmt.free();
     
-    // Insert new user
-    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)', [
-      id, email, password, fullName, businessName, phone, Date.now()
+    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+      id, email, password, fullName, businessName, phone, 'user', 'active', 0, null, null, null, Date.now(), null
     ]);
     
     triggerSave();
     
-    // Return user without password
     res.json({
       success: true,
-      user: { id, email, fullName, businessName, phone }
+      user: { id, email, fullName, businessName, phone, role: 'user', status: 'active' }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Login user
 app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
     
-    const stmt = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?');
-    stmt.bind([email, password]);
+    const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+    stmt.bind([email]);
     
     if (stmt.step()) {
       const user = stmt.getAsObject();
       stmt.free();
       
-      // Return user without password
-      const { password: _, ...safeUser } = user;
-      res.json({ success: true, user: safeUser });
+      if (user.status === 'banned') {
+        return res.status(403).json({ error: 'Your account has been banned. Contact support.' });
+      }
+      if (user.status === 'suspended') {
+        return res.status(403).json({ error: 'Your account has been suspended. Contact support.' });
+      }
+      
+      if (user.password === password) {
+        // Update last login
+        db.run('UPDATE users SET lastLoginAt = ? WHERE id = ?', [Date.now(), user.id]);
+        triggerSave();
+        
+        const { password: _, ...safeUser } = user;
+        res.json({ success: true, user: safeUser });
+      } else {
+        res.status(401).json({ error: 'Invalid email or password' });
+      }
     } else {
       stmt.free();
       res.status(401).json({ error: 'Invalid email or password' });
@@ -395,7 +413,6 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// Get current user profile
 app.get('/api/auth/profile', (req, res) => {
   try {
     const userId = req.query.userId;
@@ -420,12 +437,10 @@ app.get('/api/auth/profile', (req, res) => {
   }
 });
 
-// Update user profile
 app.put('/api/auth/profile', (req, res) => {
   try {
     const { userId, fullName, businessName, phone, currentPassword, newPassword } = req.body;
     
-    // If changing password, verify current password
     if (newPassword) {
       const checkStmt = db.prepare('SELECT password FROM users WHERE id = ?');
       checkStmt.bind([userId]);
@@ -449,7 +464,6 @@ app.put('/api/auth/profile', (req, res) => {
     
     triggerSave();
     
-    // Return updated user
     const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
     stmt.bind([userId]);
     if (stmt.step()) {
@@ -463,7 +477,6 @@ app.put('/api/auth/profile', (req, res) => {
   }
 });
 
-// Check if any user exists
 app.get('/api/auth/check', (req, res) => {
   try {
     const stmt = db.prepare('SELECT id FROM users LIMIT 1');
@@ -476,10 +489,280 @@ app.get('/api/auth/check', (req, res) => {
   }
 });
 
+// ========== ADMIN ENDPOINTS ==========
+
+// Admin login
+app.post('/api/admin/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    const stmt = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?');
+    stmt.bind([email, password]);
+    
+    if (stmt.step()) {
+      const user = stmt.getAsObject();
+      stmt.free();
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Admin only.' });
+      }
+      
+      const { password: _, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
+    } else {
+      stmt.free();
+      res.status(401).json({ error: 'Invalid admin credentials' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all users (admin only)
+app.get('/api/admin/users', (req, res) => {
+  try {
+    const adminId = req.headers['x-admin-id'];
+    
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    
+    const adminStmt = db.prepare('SELECT role FROM users WHERE id = ?');
+    adminStmt.bind([adminId]);
+    if (!adminStmt.step() || adminStmt.getAsObject().role !== 'admin') {
+      adminStmt.free();
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    adminStmt.free();
+    
+    const stmt = db.prepare('SELECT id, email, fullName, businessName, phone, role, status, warningCount, lastWarningAt, suspendedAt, suspendedReason, createdAt, lastLoginAt FROM users ORDER BY createdAt DESC');
+    const users = [];
+    while (stmt.step()) {
+      users.push(stmt.getAsObject());
+    }
+    stmt.free();
+    
+    // Remove passwords
+    const safeUsers = users.map(({ password, ...user }) => user);
+    
+    res.json({ success: true, users: safeUsers });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get user statistics (admin only)
+app.get('/api/admin/stats', (req, res) => {
+  try {
+    const adminId = req.headers['x-admin-id'];
+    
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    
+    const adminStmt = db.prepare('SELECT role FROM users WHERE id = ?');
+    adminStmt.bind([adminId]);
+    if (!adminStmt.step() || adminStmt.getAsObject().role !== 'admin') {
+      adminStmt.free();
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    adminStmt.free();
+    
+    const totalUsers = db.exec('SELECT COUNT(*) as count FROM users WHERE role = "user"')[0]?.values[0][0] || 0;
+    const activeUsers = db.exec("SELECT COUNT(*) as count FROM users WHERE role = 'user' AND status = 'active'")[0]?.values[0][0] || 0;
+    const suspendedUsers = db.exec("SELECT COUNT(*) as count FROM users WHERE role = 'user' AND status = 'suspended'")[0]?.values[0][0] || 0;
+    const bannedUsers = db.exec("SELECT COUNT(*) as count FROM users WHERE role = 'user' AND status = 'banned'")[0]?.values[0][0] || 0;
+    const warnedUsers = db.exec('SELECT COUNT(*) as count FROM users WHERE role = "user" AND warningCount > 0')[0]?.values[0][0] || 0;
+    
+    // Get sales count and total
+    const salesData = db.exec('SELECT COUNT(*) as count, SUM(price * quantity) as total FROM sales')[0]?.values[0] || [0, 0];
+    
+    res.json({
+      success: true,
+      stats: {
+        totalUsers,
+        activeUsers,
+        suspendedUsers,
+        bannedUsers,
+        warnedUsers,
+        totalSales: salesData[0] || 0,
+        totalRevenue: salesData[1] || 0
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Warn user (admin only)
+app.post('/api/admin/users/:id/warn', (req, res) => {
+  try {
+    const adminId = req.headers['x-admin-id'];
+    const userId = req.params.id;
+    
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    
+    const adminStmt = db.prepare('SELECT role FROM users WHERE id = ?');
+    adminStmt.bind([adminId]);
+    if (!adminStmt.step() || adminStmt.getAsObject().role !== 'admin') {
+      adminStmt.free();
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    adminStmt.free();
+    
+    const stmt = db.prepare('SELECT warningCount FROM users WHERE id = ?');
+    stmt.bind([userId]);
+    if (!stmt.step()) {
+      stmt.free();
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const currentWarnings = stmt.getAsObject().warningCount || 0;
+    stmt.free();
+    
+    const newWarnings = currentWarnings + 1;
+    
+    db.run('UPDATE users SET warningCount = ?, lastWarningAt = ? WHERE id = ?', [
+      newWarnings, Date.now(), userId
+    ]);
+    
+    triggerSave();
+    
+    res.json({ success: true, message: 'User warned. Total warnings: ' + newWarnings });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Suspend user (admin only)
+app.post('/api/admin/users/:id/suspend', (req, res) => {
+  try {
+    const adminId = req.headers['x-admin-id'];
+    const userId = req.params.id;
+    const { reason } = req.body;
+    
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    
+    const adminStmt = db.prepare('SELECT role FROM users WHERE id = ?');
+    adminStmt.bind([adminId]);
+    if (!adminStmt.step() || adminStmt.getAsObject().role !== 'admin') {
+      adminStmt.free();
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    adminStmt.free();
+    
+    db.run('UPDATE users SET status = ?, suspendedAt = ?, suspendedReason = ? WHERE id = ?', [
+      'suspended', Date.now(), reason || 'No reason provided', userId
+    ]);
+    
+    triggerSave();
+    
+    res.json({ success: true, message: 'User suspended' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Unsuspend user (admin only)
+app.post('/api/admin/users/:id/unsuspend', (req, res) => {
+  try {
+    const adminId = req.headers['x-admin-id'];
+    const userId = req.params.id;
+    
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    
+    const adminStmt = db.prepare('SELECT role FROM users WHERE id = ?');
+    adminStmt.bind([adminId]);
+    if (!adminStmt.step() || adminStmt.getAsObject().role !== 'admin') {
+      adminStmt.free();
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    adminStmt.free();
+    
+    db.run('UPDATE users SET status = ?, suspendedAt = NULL, suspendedReason = NULL WHERE id = ?', ['active', userId]);
+    
+    triggerSave();
+    
+    res.json({ success: true, message: 'User unsuspended' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ban user (admin only)
+app.post('/api/admin/users/:id/ban', (req, res) => {
+  try {
+    const adminId = req.headers['x-admin-id'];
+    const userId = req.params.id;
+    const { reason } = req.body;
+    
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    
+    const adminStmt = db.prepare('SELECT role FROM users WHERE id = ?');
+    adminStmt.bind([adminId]);
+    if (!adminStmt.step() || adminStmt.getAsObject().role !== 'admin') {
+      adminStmt.free();
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    adminStmt.free();
+    
+    db.run('UPDATE users SET status = ?, suspendedAt = ?, suspendedReason = ? WHERE id = ?', [
+      'banned', Date.now(), reason || 'Banned by administrator', userId
+    ]);
+    
+    triggerSave();
+    
+    res.json({ success: true, message: 'User banned' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete user (admin only)
+app.delete('/api/admin/users/:id', (req, res) => {
+  try {
+    const adminId = req.headers['x-admin-id'];
+    const userId = req.params.id;
+    
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    
+    const adminStmt = db.prepare('SELECT role FROM users WHERE id = ?');
+    adminStmt.bind([adminId]);
+    if (!adminStmt.step() || adminStmt.getAsObject().role !== 'admin') {
+      adminStmt.free();
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    adminStmt.free();
+    
+    // Delete user's data first
+    db.run('DELETE FROM sales WHERE userId = ?', [userId]);
+    db.run('DELETE FROM stock WHERE userId = ?', [userId]);
+    db.run('DELETE FROM debts WHERE userId = ?', [userId]);
+    db.run('DELETE FROM expenses WHERE userId = ?', [userId]);
+    
+    // Delete user
+    db.run('DELETE FROM users WHERE id = ?', [userId]);
+    
+    triggerSave();
+    
+    res.json({ success: true, message: 'User and all data deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Dashboard summary endpoint
 app.get('/api/summary', (req, res) => {
   try {
-    // Fetch all data and calculate sums in JavaScript (more reliable for sql.js)
     const salesStmt = db.prepare('SELECT * FROM sales');
     const sales = [];
     while (salesStmt.step()) {
@@ -577,13 +860,11 @@ app.post('/api/import', (req, res) => {
   try {
     const { sales, stock, debts, expenses } = req.body;
 
-    // Clear existing data
     db.run('DELETE FROM sales');
     db.run('DELETE FROM stock');
     db.run('DELETE FROM debts');
     db.run('DELETE FROM expenses');
 
-    // Import sales
     if (sales && Array.isArray(sales)) {
       for (const sale of sales) {
         db.run('INSERT INTO sales VALUES (?, ?, ?, ?, ?, ?, ?)', [
@@ -592,7 +873,6 @@ app.post('/api/import', (req, res) => {
       }
     }
 
-    // Import stock
     if (stock && Array.isArray(stock)) {
       for (const item of stock) {
         db.run('INSERT OR REPLACE INTO stock VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
@@ -603,7 +883,6 @@ app.post('/api/import', (req, res) => {
       }
     }
 
-    // Import debts
     if (debts && Array.isArray(debts)) {
       for (const debt of debts) {
         db.run('INSERT INTO debts VALUES (?, ?, ?, ?, ?, ?, ?)', [
@@ -613,7 +892,6 @@ app.post('/api/import', (req, res) => {
       }
     }
 
-    // Import expenses
     if (expenses && Array.isArray(expenses)) {
       for (const expense of expenses) {
         db.run('INSERT INTO expenses VALUES (?, ?, ?, ?, ?, ?)', [
@@ -646,25 +924,22 @@ app.get('*', (req, res) => {
   } else {
     res.send(`
       <html>
-        <head><title>Zion Business Manager</title></head>
-        <body>
-          <h1>Zion Business Manager</h1>
-          <p>Frontend not built. Run:</p>
-          <pre>npm run build</pre>
-          <p>Then restart the server.</p>
+        <head><title>ZION Pro</title></head>
+        <body style="font-family: system-ui; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <div style="text-align: center; color: white;">
+            <h1 style="font-size: 3rem; font-weight: 800;">ZION Pro</h1>
+            <p style="font-size: 1.2rem; opacity: 0.8;">Business Management System</p>
+            <p style="margin-top: 20px; opacity: 0.6;">Server running. Build the frontend with: npm run build</p>
+          </div>
         </body>
       </html>
     `);
   }
 });
 
-// Start server
 initDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📁 Data synced to: ${recordsFolder}`);
   });
-}).catch((err) => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
 });

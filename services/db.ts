@@ -183,7 +183,24 @@ export interface User {
   fullName: string;
   businessName: string;
   phone: string;
+  role: string;
+  status: string;
+  warningCount: number;
+  lastWarningAt?: number;
+  suspendedAt?: number;
+  suspendedReason?: string;
   createdAt?: number;
+  lastLoginAt?: number;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  suspendedUsers: number;
+  bannedUsers: number;
+  warnedUsers: number;
+  totalSales: number;
+  totalRevenue: number;
 }
 
 export async function checkUserExists(): Promise<boolean> {
@@ -248,6 +265,115 @@ export async function updateUserProfile(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || 'Update failed');
+  }
+  return response.json();
+}
+
+// ========== ADMIN FUNCTIONS ==========
+
+export async function loginAdmin(email: string, password: string): Promise<{ user: User }> {
+  const response = await fetch(`${API_BASE}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Admin login failed');
+  }
+  return response.json();
+}
+
+export async function getAllUsers(adminId: string): Promise<{ users: User[] }> {
+  const response = await fetch(`${API_BASE}/admin/users`, {
+    headers: { 'x-admin-id': adminId }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch users');
+  }
+  return response.json();
+}
+
+export async function getAdminStats(adminId: string): Promise<{ stats: AdminStats }> {
+  const response = await fetch(`${API_BASE}/admin/stats`, {
+    headers: { 'x-admin-id': adminId }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch stats');
+  }
+  return response.json();
+}
+
+export async function warnUser(adminId: string, userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/warn`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-admin-id': adminId 
+    },
+    body: JSON.stringify({ reason })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to warn user');
+  }
+  return response.json();
+}
+
+export async function suspendUser(adminId: string, userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/suspend`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-admin-id': adminId 
+    },
+    body: JSON.stringify({ reason })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to suspend user');
+  }
+  return response.json();
+}
+
+export async function unsuspendUser(adminId: string, userId: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/unsuspend`, {
+    method: 'POST',
+    headers: { 'x-admin-id': adminId }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to unsuspend user');
+  }
+  return response.json();
+}
+
+export async function banUser(adminId: string, userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}/ban`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-admin-id': adminId 
+    },
+    body: JSON.stringify({ reason })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to ban user');
+  }
+  return response.json();
+}
+
+export async function deleteUser(adminId: string, userId: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: { 'x-admin-id': adminId }
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete user');
   }
   return response.json();
 }
