@@ -381,9 +381,11 @@ export async function deleteUser(adminId: string, userId: string): Promise<{ suc
 // ========== SETTINGS FUNCTIONS ==========
 
 export async function fetchSettings(userId?: string): Promise<Record<string, any>> {
-  const url = new URL(`${API_BASE}/settings`);
-  if (userId) url.searchParams.set('userId', userId);
-  const response = await fetch(url.toString());
+  let url = `${API_BASE}/settings`;
+  if (userId) {
+    url += `?userId=${encodeURIComponent(userId)}`;
+  }
+  const response = await fetch(url);
   if (!response.ok) throw new Error('Failed to fetch settings');
   return response.json();
 }

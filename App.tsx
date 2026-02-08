@@ -649,4 +649,12 @@ const App: React.FC = () => {
   }
 };
 
-export default App;
+function AppWrapper() {
+  return (
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  );
+}
+
+export default AppWrapper;
