@@ -31,7 +31,8 @@ export default function Auth({ onLogin, showNotification }: AuthProps) {
     
     try {
       const { user } = await db.loginUser(loginEmail, loginPassword);
-      localStorage.setItem('zion_user', JSON.stringify(user));
+      // Save user session to database
+      await db.saveSettings(undefined, { currentUser: user });
       onLogin(user);
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -58,7 +59,8 @@ export default function Auth({ onLogin, showNotification }: AuthProps) {
     
     try {
       const { user } = await db.registerUser(regEmail, regPassword, regFullName, regBusinessName, regPhone);
-      localStorage.setItem('zion_user', JSON.stringify(user));
+      // Save user session to database
+      await db.saveSettings(undefined, { currentUser: user });
       onLogin(user);
       showNotification('Account created successfully!', 'success');
     } catch (err: any) {

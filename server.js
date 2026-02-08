@@ -137,6 +137,14 @@ async function initDatabase() {
       createdAt INTEGER,
       lastLoginAt INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId TEXT,
+      key TEXT NOT NULL,
+      value TEXT,
+      UNIQUE(userId, key)
+    );
   `);
   
   // Create admin account if not exists
@@ -911,6 +919,82 @@ app.post('/api/import', (req, res) => {
 // Serve static files from the dist folder
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
+
+// ========== SETTINGS ENDPOINTS ==========
+
+// Get all settings for a user
+app.get('/api/settings', (req, res) => {
+  try {
+    const userId = req.query.userId;
+    let stmt;
+    if (userId) {
+      stmt = db.prepare('SELECT key, value FROM settings WHERE userId = ? OR userId IS NULL');
+      stmt.bind([userId]);
+    } else {
+      stmt = db.prepare('SELECT key, value FROM settings WHERE userId IS NULL');
+      stmt.bind([]);
+    }
+    const settings = {};
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      try {
+        settings[row.key] = JSON.parse(row.value);
+      } catch {
+        settings[row.key] = row.value;
+      }
+    }
+    stmt.free();
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save a setting
+app.post('/api/settings', (req, res) => {
+  try {
+    const { userId, key, value } = req.body;
+    const stringValue = JSON.stringify(value);
+    db.run('INSERT OR REPLACE INTO settings (userId, key, value) VALUES (?, ?, ?)', 
+      [userId || null, key, stringValue]);
+    triggerSave();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save multiple settings at once
+app.post('/api/settings/bulk', (req, res) => {
+  try {
+    const { userId, settings } = req.body;
+    for (const [key, value] of Object.entries(settings)) {
+      const stringValue = JSON.stringify(value);
+      db.run('INSERT OR REPLACE INTO settings (userId, key, value) VALUES (?, ?, ?)', 
+        [userId || null, key, stringValue]);
+    }
+    triggerSave();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a setting
+app.delete('/api/settings', (req, res) => {
+  try {
+    const { userId, key } = req.body;
+    if (userId && key) {
+      db.run('DELETE FROM settings WHERE userId = ? AND key = ?', [userId, key]);
+    } else if (key) {
+      db.run('DELETE FROM settings WHERE key = ? AND userId IS NULL', [key]);
+    }
+    triggerSave();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Handle SPA routing
 app.get('*', (req, res) => {

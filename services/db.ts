@@ -378,6 +378,43 @@ export async function deleteUser(adminId: string, userId: string): Promise<{ suc
   return response.json();
 }
 
+// ========== SETTINGS FUNCTIONS ==========
+
+export async function fetchSettings(userId?: string): Promise<Record<string, any>> {
+  const url = new URL(`${API_BASE}/settings`);
+  if (userId) url.searchParams.set('userId', userId);
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error('Failed to fetch settings');
+  return response.json();
+}
+
+export async function saveSetting(userId: string | undefined, key: string, value: any): Promise<void> {
+  const response = await fetch(`${API_BASE}/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, key, value }),
+  });
+  if (!response.ok) throw new Error('Failed to save setting');
+}
+
+export async function saveSettings(userId: string | undefined, settings: Record<string, any>): Promise<void> {
+  const response = await fetch(`${API_BASE}/settings/bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, settings }),
+  });
+  if (!response.ok) throw new Error('Failed to save settings');
+}
+
+export async function deleteSettings(userId: string | undefined, key: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/settings`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, key }),
+  });
+  if (!response.ok) throw new Error('Failed to delete setting');
+}
+
 // Summary function
 export async function fetchSummary() {
   return apiGet<{

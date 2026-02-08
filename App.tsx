@@ -83,15 +83,12 @@ const App: React.FC = () => {
   const [stock, setStock] = useState<StockItem[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [customCategories, setCustomCategories] = useState<string[]>(() => {
-    const saved = localStorage.getItem('zion_custom_categories');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   const [notification, setNotification] = useState<{ message: string, type: NotificationType } | null>(null);
-  const [managerPassword, setManagerPassword] = useState(() => localStorage.getItem('zion_manager_pass') || '1234');
-  const [currency, setCurrency] = useState(() => localStorage.getItem('zion_currency') || '$');
-  const [reminderTime, setReminderTime] = useState(() => localStorage.getItem('zion_reminder_time') || '18:00');
+  const [managerPassword, setManagerPassword] = useState<string>('1234');
+  const [currency, setCurrency] = useState<string>('$');
+  const [reminderTime, setReminderTime] = useState<string>('18:00');
   const [lastAlarmShown, setLastAlarmShown] = useState<string | null>(null);
   const [showRecordsManager, setShowRecordsManager] = useState(false);
   const [showStoragePrompt, setShowStoragePrompt] = useState(false);
@@ -110,23 +107,50 @@ const App: React.FC = () => {
     }
   }, [managerPassword, showNotification]);
 
-  // Save custom categories to localStorage
+  // Load settings from database
   useEffect(() => {
-    localStorage.setItem('zion_custom_categories', JSON.stringify(customCategories));
-  }, [customCategories]);
+    const loadSettings = async () => {
+      try {
+        const settings = await db.fetchSettings(user?.id);
+        if (settings.customCategories) {
+          setCustomCategories(settings.customCategories);
+        }
+        if (settings.managerPassword) {
+          setManagerPassword(settings.managerPassword);
+        }
+        if (settings.currency) {
+          setCurrency(settings.currency);
+        }
+        if (settings.reminderTime) {
+          setReminderTime(settings.reminderTime);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    if (user) {
+      loadSettings();
+    }
+  }, [user]);
 
-  // Check for existing user session
+  // Save custom categories to database
+  useEffect(() => {
+    if (user && customCategories.length > 0) {
+      db.saveSettings(user.id, { customCategories });
+    }
+  }, [customCategories, user]);
+
+  // Check for existing user session from database
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const savedUser = localStorage.getItem('zion_user');
-        if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
+        // First try to load from SQLite database
+        const settings = await db.fetchSettings(undefined);
+        if (settings.currentUser) {
           try {
-            const { user: freshUser } = await db.getUserProfile(parsedUser.id);
+            const { user: freshUser } = await db.getUserProfile(settings.currentUser.id);
             setUser(freshUser);
           } catch {
-            localStorage.removeItem('zion_user');
             setUser(null);
           }
         }
@@ -278,18 +302,16 @@ const App: React.FC = () => {
   const handleLogin = async (loggedInUser: User) => {
     setUser(loggedInUser);
     
-    // Check if admin credentials
     if (loggedInUser.email === 'zionpro@gmail.com' && loggedInUser.role === 'admin') {
       setAdminId(loggedInUser.id);
       setShowAdminDashboard(true);
-      localStorage.setItem('zion_admin', loggedInUser.id);
+      db.saveSettings(undefined, { currentUser: loggedInUser });
       showNotification('Welcome, Administrator!', 'success');
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('zion_user');
-    localStorage.removeItem('zion_admin');
+    db.deleteSettings(undefined, 'currentUser');
     setUser(null);
     setAdminId(null);
     setShowAdminDashboard(false);
@@ -303,7 +325,7 @@ const App: React.FC = () => {
     try {
       const { user: adminUser } = await db.loginAdmin(email, password);
       setAdminId(adminUser.id);
-      localStorage.setItem('zion_admin', adminUser.id);
+      db.saveSettings(undefined, { currentUser: adminUser });
       setShowAdminDashboard(true);
       showNotification('Welcome, Administrator!', 'success');
     } catch (error: any) {
@@ -313,7 +335,7 @@ const App: React.FC = () => {
   };
 
   const handleAdminLogout = () => {
-    localStorage.removeItem('zion_admin');
+    db.deleteSettings(undefined, 'currentUser');
     setAdminId(null);
     setShowAdminDashboard(false);
   };
@@ -418,19 +440,19 @@ const App: React.FC = () => {
 
   const handleChangePassword = (newPass: string) => {
     setManagerPassword(newPass);
-    localStorage.setItem('zion_manager_pass', newPass);
+    db.saveSettings(user?.id, { managerPassword: newPass });
     showNotification("Password changed.");
   };
 
   const handleCurrencyChange = (newCurrency: string) => {
     setCurrency(newCurrency);
-    localStorage.setItem('zion_currency', newCurrency);
+    db.saveSettings(user?.id, { currency: newCurrency });
     showNotification(`Currency updated.`);
   };
 
   const handleReminderChange = (time: string) => {
     setReminderTime(time);
-    localStorage.setItem('zion_reminder_time', time);
+    db.saveSettings(user?.id, { reminderTime: time });
     showNotification("Reminder alarm updated.");
   };
 
@@ -503,125 +525,128 @@ const App: React.FC = () => {
               <p className="text-xs font-black text-[var(--color-text-muted)] uppercase tracking-widest">Business</p>
               <p className="text-sm font-bold text-[var(--color-primary)]">{user.businessName}</p>
             </div>
-            <div className="hidden md:block text-right mr-2">
-              <p className="text-xs font-black text-[var(--color-text-muted)] uppercase tracking-widest">User</p>
-              <p className="text-sm font-bold text-[var(--color-text)]">{user.fullName}</p>
+            <div className="flex items-center gap-2 bg-[var(--color-background)] px-3 py-1.5 rounded-lg border border-[var(--color-surface-border)]">
+              <span className="text-[var(--color-text-muted)]">{currency}</span>
+              <span className="font-black text-[var(--color-primary)]">{filteredSales.reduce((acc, s) => acc + (Number(s.price) * Number(s.quantity)), 0).toLocaleString()}</span>
             </div>
-            <button 
-              onClick={handleLogout}
-              className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"
-              title="Logout"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
-              </svg>
-            </button>
             <ThemeSwitcher />
           </div>
         </header>
 
-        <main className="p-4 md:p-10 max-w-7xl mx-auto w-full">
-          {activeTab === 'dashboard' && (
-            <Dashboard 
-              data={businessData} 
-              onChangePassword={handleChangePassword} 
-              currentPassword={managerPassword} 
-              currency={currency}
-              onCurrencyChange={handleCurrencyChange}
-              reminderTime={reminderTime}
-              onReminderChange={handleReminderChange}
-            />
-          )}
-          {activeTab === 'sales' && (
-            <SalesManager 
-              items={filteredSales} 
-              stock={stock} 
-              customCategories={customCategories}
-              onAddCategory={handleAddCategory}
-              onUpdateCategory={handleUpdateCategory}
-              onDeleteCategory={handleDeleteCategory}
-              onAdd={handleSale} 
-              onDelete={handleDeleteSale}
-              currency={currency}
-            />
-          )}
-          {activeTab === 'stock' && (
-            <StockManager 
-              items={filteredStock} 
-              onAdd={handleAddStock} 
-              onUpdate={handleUpdateStock}
-              onDelete={handleDeleteStock}
-              managerPassword={managerPassword}
-              currency={currency}
-            />
-          )}
-          {activeTab === 'debts' && (
-            <DebtManager 
-              items={filteredDebts} 
-              onAdd={handleAddDebt} 
-              onUpdate={handleUpdateDebt}
-              onToggle={handleToggleDebt} 
-              onDelete={handleDeleteDebt}
-              managerPassword={managerPassword}
-              currency={currency}
-            />
-          )}
-          {activeTab === 'expenses' && (
-            <ExpenseManager 
-              items={filteredExpenses} 
-              customCategories={customCategories}
-              onAddCategory={handleAddCategory}
-              onUpdateCategory={handleUpdateCategory}
-              onDeleteCategory={handleDeleteCategory}
-              onAdd={handleAddExpense} 
-              onDelete={handleDeleteExpense}
-              currency={currency}
-            />
-          )}
-          {activeTab === 'reports' && <Reports data={businessData} currency={currency} />}
-          {showAdminDashboard && adminId && (
+        <main className="flex-1 p-6">
+          {showAdminDashboard ? (
             <AdminDashboard 
-              adminId={adminId} 
               onLogout={handleAdminLogout}
+              currency={currency}
             />
+          ) : (
+            <>
+              {activeTab === 'dashboard' && (
+                <Dashboard 
+                  data={businessData}
+                  currency={currency}
+                  onNavigate={setActiveTab}
+                />
+              )}
+              
+              {activeTab === 'sales' && (
+                <SalesManager 
+                  sales={filteredSales}
+                  stock={stock}
+                  customCategories={customCategories}
+                  onAddSale={handleSale}
+                  onDeleteSale={handleDeleteSale}
+                  currency={currency}
+                />
+              )}
+              
+              {activeTab === 'stock' && (
+                <StockManager 
+                  items={filteredStock}
+                  customCategories={customCategories}
+                  onAddItem={handleAddStock}
+                  onUpdateItem={handleUpdateStock}
+                  onDeleteItem={handleDeleteStock}
+                  currency={currency}
+                  onAddCategory={handleAddCategory}
+                  onUpdateCategory={handleUpdateCategory}
+                  onDeleteCategory={handleDeleteCategory}
+                />
+              )}
+              
+              {activeTab === 'debts' && (
+                <DebtManager 
+                  debts={filteredDebts}
+                  onAddDebt={handleAddDebt}
+                  onUpdateDebt={handleUpdateDebt}
+                  onToggleDebt={handleToggleDebt}
+                  onDeleteDebt={handleDeleteDebt}
+                  currency={currency}
+                />
+              )}
+              
+              {activeTab === 'expenses' && (
+                <ExpenseManager 
+                  expenses={filteredExpenses}
+                  customCategories={customCategories}
+                  onAddExpense={handleAddExpense}
+                  onDeleteExpense={handleDeleteExpense}
+                  currency={currency}
+                  onAddCategory={handleAddCategory}
+                />
+              )}
+              
+              {activeTab === 'reports' && (
+                <Reports 
+                  sales={sales}
+                  stock={stock}
+                  debts={debts.filter(d => !d.isPaid)}
+                  expenses={expenses}
+                  currency={currency}
+                />
+              )}
+            </>
           )}
         </main>
-
-        <WarningStatusBar data={businessData} onNavigate={setActiveTab} />
-
-        {showRecordsManager && <RecordsManager onClose={() => setShowRecordsManager(false)} />}
-
-        <nav className="md:hidden fixed bottom-6 left-6 right-6 bg-[var(--color-surface)]/90 backdrop-blur-lg border border-[var(--color-surface-border)] rounded-3xl flex justify-around items-center p-3 z-50 shadow-2xl shadow-[var(--color-primary)]/10">
-          <MobileNavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<DashboardIcon />} label="Home" />
-          <MobileNavButton active={activeTab === 'sales'} onClick={() => setActiveTab('sales')} icon={<SalesIcon />} label="Sales" />
-          <MobileNavButton active={activeTab === 'stock'} onClick={() => setActiveTab('stock')} icon={<StockIcon />} label="Stock" />
-          <MobileNavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<ReportsIcon />} label="Reports" />
-        </nav>
+        
+        {showRecordsManager && (
+          <RecordsManager 
+            onClose={() => setShowRecordsManager(false)}
+            sales={sales}
+            stock={stock}
+            debts={debts}
+            expenses={expenses}
+            customCategories={customCategories}
+            managerPassword={managerPassword}
+            onChangePassword={handleChangePassword}
+            onCurrencyChange={handleCurrencyChange}
+            onReminderChange={handleReminderChange}
+            currency={currency}
+            userId={user.id}
+            userRole={user.role}
+            adminId={adminId}
+            onAdminLogin={handleAdminLogin}
+          />
+        )}
       </div>
     </>
   );
+
+  function NavButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+    return (
+      <button
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
+          active 
+            ? 'bg-[var(--color-primary)] text-white shadow-lg shadow-blue-200' 
+            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-background-alt)] hover:text-[var(--color-text)]'
+        }`}
+      >
+        {icon}
+        {label}
+      </button>
+    );
+  }
 };
 
-const NavButton = ({ active, onClick, icon, label, className = '' }: any) => (
-  <button onClick={onClick} className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${active ? 'bg-[var(--color-primary)] text-[var(--color-text-inverse)] font-bold shadow-xl shadow-[var(--color-primary)]/20 scale-[1.02]' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-background-alt)] hover:text-[var(--color-text)]'} ${className}`}>
-    <span className="text-xl">{icon}</span>
-    <span className="text-sm tracking-tight">{label}</span>
-  </button>
-);
-
-const MobileNavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex flex-col items-center py-2 px-3 rounded-2xl transition-all duration-300 ${active ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10 scale-110' : 'text-[var(--color-text-muted)]'}`}>
-    <span className="text-2xl">{icon}</span>
-    <span className="text-[10px] font-black mt-1 uppercase tracking-tighter">{label}</span>
-  </button>
-);
-
-export default function AppWrapper() {
-  return (
-    <ThemeProvider>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    </ThemeProvider>
-  );
-}
+export default App;
