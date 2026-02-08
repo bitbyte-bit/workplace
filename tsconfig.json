@@ -11,7 +11,9 @@
     ],
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "react",
+      "react-dom"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -20,7 +22,7 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": [
-        "./*"
+ "./*"
       ]
     },
     "allowImportingTsExtensions": true,
@@ -28,6 +30,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
   ]
 }
