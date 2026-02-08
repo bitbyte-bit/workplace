@@ -536,6 +536,7 @@ const App: React.FC = () => {
         <main className="flex-1 p-6">
           {showAdminDashboard ? (
             <AdminDashboard 
+              adminId={adminId || ''}
               onLogout={handleAdminLogout}
               currency={currency}
             />
