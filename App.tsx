@@ -258,7 +258,24 @@ function App() {
     await db.updateStockQuantity(newSale.itemName, -newSale.quantity);
     setSales(prev => [newSale, ...prev]);
     setStock(prev => prev.map(item => item.name.toLowerCase() === newSale.itemName.toLowerCase() ? { ...item, quantity: item.quantity - newSale.quantity, lastUpdated: Date.now() } : item));
-    showNotification("Sale recorded!");
+    
+    // Auto-create debt record for credit sales
+    if (newSale.isOnCredit && newSale.balance && newSale.balance > 0 && newSale.customerName) {
+      const debt: Debt = {
+        id: `debt_${Date.now()}`,
+        debtorName: newSale.customerName,
+        phoneNumber: newSale.customerPhone || '',
+        amount: newSale.balance,
+        description: `Credit sale: ${newSale.quantity}x ${newSale.itemName} @ ${currency}${newSale.price}`,
+        isPaid: false,
+        date: Date.now()
+      };
+      await db.saveDebt(debt);
+      setDebts(prev => [debt, ...prev]);
+      showNotification("Sale recorded! Debt added to Debt Manager.");
+    } else {
+      showNotification("Sale recorded!");
+    }
     triggerSync();
   };
 
