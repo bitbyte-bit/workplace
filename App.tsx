@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
 import Dashboard from './components/Dashboard';
 import SalesManager from './components/SalesManager';
 import StockManager from './components/StockManager';
@@ -9,7 +8,6 @@ import ExpenseManager from './components/ExpenseManager';
 import Reports from './components/Reports';
 import SearchBar from './components/SearchBar';
 import Notification, { NotificationType } from './components/Notification';
-import WarningStatusBar from './components/WarningStatusBar';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import RecordsManager from './components/RecordsManager';
 import Auth from './components/Auth';
@@ -19,17 +17,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
 import { triggerAutoSync, isDeviceSyncEnabled } from './services/fileSystem';
 import { User } from './services/db';
-import { 
-  DashboardIcon, 
-  SalesIcon, 
-  StockIcon, 
-  DebtIcon, 
-  ExpenseIcon, 
-  ReportsIcon,
-  ClockIcon,
-  FolderIcon,
-  ShieldIcon
-} from './components/Icons';
+import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon } from './components/Icons';
+import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
 
 interface SearchResult {
   id: string;
@@ -39,39 +28,7 @@ interface SearchResult {
   amount?: number;
 }
 
-function ErrorBoundary({ children }: { children: React.ReactNode }) {
-  const [hasError, setHasError] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    const handleError = (error: Error) => {
-      setError(error);
-      setHasError(true);
-    };
-    return () => {};
-  }, []);
-
-  if (hasError) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[var(--color-background)] p-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-          <p className="text-[var(--color-text-muted)] mb-4">{error?.message || 'Unknown error'}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg hover:bg-[var(--color-primary-hover)]"
-          >
-            Reload Page
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return children;
-}
-
-const App: React.FC = () => {
+function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -86,9 +43,9 @@ const App: React.FC = () => {
   const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   const [notification, setNotification] = useState<{ message: string, type: NotificationType } | null>(null);
-  const [managerPassword, setManagerPassword] = useState<string>('1234');
-  const [currency, setCurrency] = useState<string>('$');
-  const [reminderTime, setReminderTime] = useState<string>('18:00');
+  const [managerPassword, setManagerPassword] = useState('1234');
+  const [currency, setCurrency] = useState('$');
+  const [reminderTime, setReminderTime] = useState('18:00');
   const [lastAlarmShown, setLastAlarmShown] = useState<string | null>(null);
   const [showRecordsManager, setShowRecordsManager] = useState(false);
   const [showStoragePrompt, setShowStoragePrompt] = useState(false);
@@ -107,44 +64,30 @@ const App: React.FC = () => {
     }
   }, [managerPassword, showNotification]);
 
-  // Load settings from database
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const settings = await db.fetchSettings(user?.id);
-        if (settings.customCategories) {
-          setCustomCategories(settings.customCategories);
-        }
-        if (settings.managerPassword) {
-          setManagerPassword(settings.managerPassword);
-        }
-        if (settings.currency) {
-          setCurrency(settings.currency);
-        }
-        if (settings.reminderTime) {
-          setReminderTime(settings.reminderTime);
-        }
+        if (settings.customCategories) setCustomCategories(settings.customCategories);
+        if (settings.managerPassword) setManagerPassword(settings.managerPassword);
+        if (settings.currency) setCurrency(settings.currency);
+        if (settings.reminderTime) setReminderTime(settings.reminderTime);
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
     };
-    if (user) {
-      loadSettings();
-    }
+    if (user) loadSettings();
   }, [user]);
 
-  // Save custom categories to database
   useEffect(() => {
     if (user && customCategories.length > 0) {
       db.saveSettings(user.id, { customCategories });
     }
   }, [customCategories, user]);
 
-  // Check for existing user session from database
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // First try to load from SQLite database
         const settings = await db.fetchSettings(undefined);
         if (settings.currentUser) {
           try {
@@ -162,7 +105,6 @@ const App: React.FC = () => {
     checkAuth();
   }, []);
 
-  // Storage permission handler
   const handleStorageGranted = () => {
     setShowStoragePrompt(false);
     setDeviceSyncEnabled(true);
@@ -174,7 +116,6 @@ const App: React.FC = () => {
     setDeviceSyncEnabled(false);
   };
 
-  // Trigger auto sync when data changes
   const triggerSync = useCallback(() => {
     if (deviceSyncEnabled) {
       triggerAutoSync({ sales, stock, debts, expenses, businessName: user?.businessName });
@@ -186,20 +127,17 @@ const App: React.FC = () => {
       const now = new Date();
       const currentHM = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const todayDate = now.toDateString();
-
       if (currentHM === reminderTime && lastAlarmShown !== todayDate) {
         showNotification("Time to record your business records for today!", "success");
         setLastAlarmShown(todayDate);
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       }
     }, 30000);
-
     return () => clearInterval(alarmInterval);
   }, [reminderTime, lastAlarmShown, showNotification]);
 
   useEffect(() => {
     if (!user) return;
-    
     const loadData = async () => {
       try {
         setLoading(true);
@@ -213,7 +151,6 @@ const App: React.FC = () => {
         showNotification("Failed to load data.", "error");
       } finally {
         setLoading(false);
-        // Show storage permission prompt after data loads
         if (!isDeviceSyncEnabled()) {
           setShowStoragePrompt(true);
         }
@@ -224,84 +161,60 @@ const App: React.FC = () => {
 
   const businessData: BusinessData = { sales, stock, debts, expenses };
 
-  const filteredSales = useMemo(() => sales.filter(s => s.itemName.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), [sales, searchQuery]);
-  const filteredStock = useMemo(() => stock.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.lastUpdated - a.lastUpdated), [stock, searchQuery]);
-  const filteredDebts = useMemo(() => debts.filter(d => d.debtorName.toLowerCase().includes(searchQuery.toLowerCase()) || d.phoneNumber.includes(searchQuery)).sort((a, b) => b.date - a.date), [debts, searchQuery]);
-  const filteredExpenses = useMemo(() => expenses.filter(e => e.category.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), [expenses, searchQuery]);
+  const filteredSales = useMemo(() => 
+    sales.filter(s => s.itemName.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), 
+  [sales, searchQuery]);
+  
+  const filteredStock = useMemo(() => 
+    stock.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.lastUpdated - a.lastUpdated), 
+  [stock, searchQuery]);
+  
+  const filteredDebts = useMemo(() => 
+    debts.filter(d => d.debtorName.toLowerCase().includes(searchQuery.toLowerCase()) || d.phoneNumber.includes(searchQuery)).sort((a, b) => b.date - a.date), 
+  [debts, searchQuery]);
+  
+  const filteredExpenses = useMemo(() => 
+    expenses.filter(e => e.category.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), 
+  [expenses, searchQuery]);
 
   const searchResults: SearchResult[] = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const results: SearchResult[] = [];
-    
     stock.forEach(item => {
       if (item.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        results.push({
-          id: item.id,
-          name: item.name,
-          type: 'stock',
-          quantity: item.quantity
-        });
+        results.push({ id: item.id, name: item.name, type: 'stock', quantity: item.quantity });
       }
     });
-    
     sales.forEach(sale => {
       if (sale.itemName.toLowerCase().includes(searchQuery.toLowerCase())) {
-        results.push({
-          id: sale.id,
-          name: sale.itemName,
-          type: 'sale',
-          quantity: sale.quantity,
-          amount: sale.price * sale.quantity
-        });
+        results.push({ id: sale.id, name: sale.itemName, type: 'sale', quantity: sale.quantity, amount: sale.price * sale.quantity });
       }
     });
-    
     debts.forEach(debt => {
       if (debt.debtorName.toLowerCase().includes(searchQuery.toLowerCase())) {
-        results.push({
-          id: debt.id,
-          name: debt.debtorName,
-          type: 'debt',
-          amount: debt.amount
-        });
+        results.push({ id: debt.id, name: debt.debtorName, type: 'debt', amount: debt.amount });
       }
     });
-    
     expenses.forEach(expense => {
       if (expense.category.toLowerCase().includes(searchQuery.toLowerCase())) {
-        results.push({
-          id: expense.id,
-          name: expense.category,
-          type: 'expense',
-          amount: expense.amount
-        });
+        results.push({ id: expense.id, name: expense.category, type: 'expense', amount: expense.amount });
       }
     });
-    
     return results;
   }, [searchQuery, stock, sales, debts, expenses]);
 
   const handleSearchSelect = (result: SearchResult) => {
     switch (result.type) {
-      case 'stock':
-        setActiveTab('stock');
-        break;
-      case 'sale':
-        setActiveTab('sales');
-        break;
-      case 'debt':
-        setActiveTab('debts');
-        break;
-      case 'expense':
-        setActiveTab('expenses');
-        break;
+      case 'stock': setActiveTab('stock'); break;
+      case 'sale': setActiveTab('sales'); break;
+      case 'debt': setActiveTab('debts'); break;
+      case 'expense': setActiveTab('expenses'); break;
     }
     setSearchQuery('');
   };
 
   const handleLogin = async (loggedInUser: User) => {
     setUser(loggedInUser);
-    
     if (loggedInUser.email === 'zionpro@gmail.com' && loggedInUser.role === 'admin') {
       setAdminId(loggedInUser.id);
       setShowAdminDashboard(true);
@@ -412,6 +325,13 @@ const App: React.FC = () => {
     triggerSync();
   };
 
+  const handleUpdateExpense = async (expense: Expense) => {
+    await db.updateExpenseItem(expense);
+    setExpenses(prev => prev.map(e => e.id === expense.id ? expense : e));
+    showNotification("Expense updated.");
+    triggerSync();
+  };
+
   const handleDeleteExpense = (id: string) => verifyAction(async () => {
     await db.deleteExpense(id);
     setExpenses(prev => prev.filter(e => e.id !== id));
@@ -447,7 +367,7 @@ const App: React.FC = () => {
   const handleCurrencyChange = (newCurrency: string) => {
     setCurrency(newCurrency);
     db.saveSettings(user?.id, { currency: newCurrency });
-    showNotification(`Currency updated.`);
+    showNotification("Currency updated.");
   };
 
   const handleReminderChange = (time: string) => {
@@ -489,7 +409,7 @@ const App: React.FC = () => {
           />
         )}
         
-        <aside className="hidden md:flex flex-col w-64 bg-white border-r h-full fixed left-0 top-0 p-6 shadow-xl shadow-slate-200/50">
+        <aside className="hidden md:flex flex-col w-64 bg-white border-r h-full fixed left-0 top-0 p-6 shadow-xl">
           <h1 className="text-3xl font-black text-blue-600 mb-10 tracking-tighter flex items-center gap-2">
             ZION <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full uppercase">Pro</span>
           </h1>
@@ -546,7 +466,6 @@ const App: React.FC = () => {
                 <Dashboard 
                   data={businessData}
                   currency={currency}
-                  onNavigate={setActiveTab}
                 />
               )}
               
@@ -558,6 +477,9 @@ const App: React.FC = () => {
                   onAddSale={handleSale}
                   onDeleteSale={handleDeleteSale}
                   currency={currency}
+                  onAddCategory={handleAddCategory}
+                  onUpdateCategory={handleUpdateCategory}
+                  onDeleteCategory={handleDeleteCategory}
                 />
               )}
               
@@ -591,18 +513,19 @@ const App: React.FC = () => {
                   expenses={filteredExpenses}
                   customCategories={customCategories}
                   onAddExpense={handleAddExpense}
+                  onUpdateExpense={handleUpdateExpense}
                   onDeleteExpense={handleDeleteExpense}
                   currency={currency}
                   onAddCategory={handleAddCategory}
+                  onUpdateCategory={handleUpdateCategory}
+                  onDeleteCategory={handleDeleteCategory}
+                  managerPassword={managerPassword}
                 />
               )}
               
               {activeTab === 'reports' && (
                 <Reports 
-                  sales={sales}
-                  stock={stock}
-                  debts={debts.filter(d => !d.isPaid)}
-                  expenses={expenses}
+                  data={businessData}
                   currency={currency}
                 />
               )}
@@ -613,10 +536,7 @@ const App: React.FC = () => {
         {showRecordsManager && (
           <RecordsManager 
             onClose={() => setShowRecordsManager(false)}
-            sales={sales}
-            stock={stock}
-            debts={debts}
-            expenses={expenses}
+            data={businessData}
             customCategories={customCategories}
             managerPassword={managerPassword}
             onChangePassword={handleChangePassword}
@@ -648,7 +568,7 @@ const App: React.FC = () => {
       </button>
     );
   }
-};
+}
 
 function AppWrapper() {
   return (

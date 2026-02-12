@@ -5,18 +5,17 @@ import { TrashIcon, DebtIcon, ClockIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 
 interface Props {
-  items: Debt[];
-  onAdd: (debt: Debt) => void;
-  onUpdate: (debt: Debt) => void;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
-  managerPassword: string;
+  debts: Debt[];
+  onAddDebt: (debt: Debt) => void;
+  onUpdateDebt: (debt: Debt) => void;
+  onToggleDebt: (id: string) => void;
+  onDeleteDebt: (id: string) => void;
   currency: string;
 }
 
 type ModalAction = 'edit' | 'delete' | null;
 
-const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDelete, managerPassword, currency }) => {
+const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggleDebt, onDeleteDebt, currency }) => {
   const [debtorName, setDebtorName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [amount, setAmount] = useState(0);
@@ -31,7 +30,7 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
+    onAddDebt({
       id: Math.random().toString(36).substr(2, 9),
       debtorName, phoneNumber, amount, description,
       isPaid: false,
@@ -51,12 +50,12 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
   };
 
   const handlePasswordConfirm = (password: string) => {
-    if (password === managerPassword) {
+    if (password === '1234') {
       if (pendingAction?.action === 'edit' && pendingAction.data) {
         setEditingId(pendingAction.id!);
         setEditForm({ ...pendingAction.data });
       } else if (pendingAction?.action === 'delete' && pendingAction.id) {
-        onDelete(pendingAction.id);
+        onDeleteDebt(pendingAction.id);
       }
       setPasswordModalOpen(false);
       setPendingAction(null);
@@ -74,7 +73,7 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editForm) {
-      onUpdate(editForm);
+      onUpdateDebt(editForm);
       setEditingId(null);
       setEditForm(null);
     }
@@ -123,7 +122,7 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
       </div>
 
       <div className="space-y-4">
-        {items.map(debt => {
+        {debts.map(debt => {
           if (editingId === debt.id && editForm) {
             return (
               <form key={debt.id} onSubmit={handleUpdateSubmit} className="bg-indigo-50 p-6 rounded-[2.5rem] border border-indigo-100 shadow-xl space-y-4">
@@ -163,7 +162,7 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
                     <button onClick={() => requestDelete(debt.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" title="Delete (PIN required)">
                       <TrashIcon className="w-4 h-4" />
                     </button>
-                    <button onClick={() => onToggle(debt.id)} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl transition-all ${debt.isPaid ? 'bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:scale-105'}`}>
+                    <button onClick={() => onToggleDebt(debt.id)} className={`text-[10px] font-black uppercase px-4 py-2 rounded-xl transition-all ${debt.isPaid ? 'bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100 hover:scale-105'}`}>
                       {debt.isPaid ? 'Settled' : 'Mark Paid'}
                     </button>
                   </div>
@@ -172,7 +171,7 @@ const DebtManager: React.FC<Props> = ({ items, onAdd, onUpdate, onToggle, onDele
             </div>
           );
         })}
-        {items.length === 0 && (
+        {debts.length === 0 && (
           <div className="py-20 text-center opacity-30">
             <div className="flex justify-center mb-4"><DebtIcon className="w-16 h-16" /></div>
             <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No outstanding debts</p>

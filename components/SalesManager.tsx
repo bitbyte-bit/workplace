@@ -6,14 +6,14 @@ import PasswordModal from './PasswordModal';
 import CategoryModal from './CategoryModal';
 
 interface Props {
-  items: Sale[];
+  sales: Sale[];
   stock: StockItem[];
   customCategories: string[];
   onAddCategory: (category: string) => void;
   onUpdateCategory: (oldCategory: string, newCategory: string) => void;
   onDeleteCategory: (category: string) => void;
-  onAdd: (sale: Sale) => void;
-  onDelete: (id: string) => void;
+  onAddSale: (sale: Sale) => void;
+  onDeleteSale: (id: string) => void;
   currency: string;
 }
 
@@ -27,7 +27,7 @@ const PREDEFINED_CATEGORIES = [
   "Components & Parts"
 ];
 
-const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAdd, onDelete, currency }) => {
+const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddSale, onDeleteSale, currency }) => {
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('Smartphones');
   const [quantity, setQuantity] = useState(1);
@@ -65,7 +65,7 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
       date: Date.now(),
     };
     
-    onAdd(newSale);
+    onAddSale(newSale);
     setItemName('');
     setCategory('Smartphones');
     setQuantity(1);
@@ -99,7 +99,7 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
   const handlePasswordConfirm = (password: string) => {
     if (password && password.length > 0) {
       if (pendingDeleteId) {
-        onDelete(pendingDeleteId);
+        onDeleteSale(pendingDeleteId);
       }
       setPasswordModalOpen(false);
       setPendingDeleteId(null);
@@ -254,7 +254,7 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {items.map((sale) => {
+              {sales.map((sale) => {
                 const totalAmount = sale.price * sale.quantity;
                 const profitLoss = (sale.price - sale.cost) * sale.quantity;
                 
@@ -280,7 +280,7 @@ const SalesManager: React.FC<Props> = ({ items, stock, customCategories, onAddCa
                   </tr>
                 );
               })}
-              {items.length === 0 && (
+              {sales.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-8 py-16 text-center opacity-40">
                     <div className="flex justify-center mb-4"><SalesIcon className="w-12 h-12 text-slate-300" /></div>

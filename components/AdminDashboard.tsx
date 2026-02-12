@@ -11,6 +11,7 @@ import {
 interface AdminDashboardProps {
   adminId: string;
   onLogout: () => void;
+  currency: string;
 }
 
 interface MonthlyData {
@@ -21,7 +22,7 @@ interface MonthlyData {
   debts: number;
 }
 
-export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProps) {
+export default function AdminDashboard({ adminId, onLogout, currency }: AdminDashboardProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);

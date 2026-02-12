@@ -2,12 +2,25 @@ import React, { useState } from 'react';
 import { FolderIcon, FileIcon, DownloadIcon, UploadIcon, TrashIcon, RefreshIcon } from './Icons';
 import { exportAllData, importData, forceSync } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
+import { Sale, StockItem, Debt, Expense } from '../types';
+import { BusinessData } from '../types';
 
 interface RecordsManagerProps {
   onClose: () => void;
+  data: BusinessData;
+  customCategories: string[];
+  managerPassword: string;
+  onChangePassword: (newPass: string) => void;
+  onCurrencyChange: (newCurrency: string) => void;
+  onReminderChange: (time: string) => void;
+  currency: string;
+  userId: string;
+  userRole: string;
+  adminId: string | null;
+  onAdminLogin: (email: string, password: string) => Promise<void>;
 }
 
-export default function RecordsManager({ onClose }: RecordsManagerProps) {
+export default function RecordsManager({ onClose, data, customCategories, managerPassword, onChangePassword, onCurrencyChange, onReminderChange, currency, userId, userRole, adminId, onAdminLogin }: RecordsManagerProps) {
   const { colors } = useTheme();
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);

@@ -355,6 +355,19 @@ app.delete('/api/expenses/:id', (req, res) => {
   }
 });
 
+app.put('/api/expenses/:id', (req, res) => {
+  try {
+    const { category, amount, description, date, frequency } = req.body;
+    db.run('UPDATE expenses SET category=?, amount=?, description=?, date=?, frequency=? WHERE id=?', [
+      category, amount, description, date, frequency, req.params.id
+    ]);
+    triggerSave();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========== USER AUTHENTICATION ==========
 
 app.post('/api/auth/register', (req, res) => {

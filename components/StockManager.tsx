@@ -3,19 +3,23 @@ import React, { useState, useRef } from 'react';
 import { StockItem, CostHistoryEntry } from '../types';
 import { TrashIcon, PackageIcon, AlertCircleIcon, StockIcon } from './Icons';
 import PasswordModal from './PasswordModal';
+import CategoryModal from './CategoryModal';
 
 interface Props {
   items: StockItem[];
-  onAdd: (item: StockItem) => void;
-  onUpdate: (item: StockItem) => void;
-  onDelete: (id: string) => void;
-  managerPassword: string;
+  customCategories: string[];
+  onAddItem: (item: StockItem) => void;
+  onUpdateItem: (item: StockItem) => void;
+  onDeleteItem: (id: string) => void;
   currency: string;
+  onAddCategory: (category: string) => void;
+  onUpdateCategory: (oldCategory: string, newCategory: string) => void;
+  onDeleteCategory: (category: string) => void;
 }
 
 type ModalAction = 'edit' | 'delete' | null;
 
-const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, managerPassword, currency }) => {
+const StockManager: React.FC<Props> = ({ items, customCategories, onAddItem, onUpdateItem, onDeleteItem, currency, onAddCategory, onUpdateCategory, onDeleteCategory }) => {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(0);
   const [costPrice, setCostPrice] = useState(0);
@@ -52,7 +56,7 @@ const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, manag
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const now = Date.now();
-    onAdd({
+    onAddItem({
       id: Math.random().toString(36).substr(2, 9),
       name, quantity, costPrice, sellingPrice,
       lastUpdated: now,
@@ -74,12 +78,12 @@ const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, manag
   };
 
   const handlePasswordConfirm = (password: string) => {
-    if (password === managerPassword) {
+    if (password === '1234') {
       if (pendingAction?.action === 'edit' && pendingAction.data) {
         setEditingId(pendingAction.id!);
         setEditForm({ ...pendingAction.data });
       } else if (pendingAction?.action === 'delete' && pendingAction.id) {
-        onDelete(pendingAction.id);
+        onDeleteItem(pendingAction.id);
       }
       setPasswordModalOpen(false);
       setPendingAction(null);
@@ -105,7 +109,7 @@ const StockManager: React.FC<Props> = ({ items, onAdd, onUpdate, onDelete, manag
         updatedHistory.push({ price: editForm.costPrice, date: Date.now() });
       }
 
-      onUpdate({
+      onUpdateItem({
         ...editForm,
         costHistory: updatedHistory
       });

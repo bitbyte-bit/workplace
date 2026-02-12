@@ -5,14 +5,24 @@ import { TrashIcon, ExpenseIcon, ClockIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 import CategoryModal from './CategoryModal';
 
+// EditIcon component inline
+const EditIcon = ({ className = "w-4 h-4" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
 interface Props {
-  items: Expense[];
+  expenses: Expense[];
   customCategories: string[];
   onAddCategory: (category: string) => void;
   onUpdateCategory: (oldCategory: string, newCategory: string) => void;
   onDeleteCategory: (category: string) => void;
-  onAdd: (expense: Expense) => void;
-  onDelete: (id: string) => void;
+  onAddExpense: (expense: Expense) => void;
+  onUpdateExpense: (expense: Expense) => void;
+  onDeleteExpense: (id: string) => void;
+  managerPassword: string;
   currency: string;
 }
 
@@ -27,7 +37,7 @@ const PREDEFINED_CATEGORIES = [
   "Software & Tech Tools"
 ];
 
-const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAdd, onDelete, currency }) => {
+const ExpenseManager: React.FC<Props> = ({ expenses, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddExpense, onUpdateExpense, onDeleteExpense, managerPassword, currency }) => {
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState('');
@@ -41,13 +51,21 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
 
   // Password modal state
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ action: 'edit' | 'delete', id?: string, data?: Expense } | null>(null);
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Expense | null>(null);
 
   const allCategories = [...new Set([...PREDEFINED_CATEGORIES, ...customCategories])];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
+    if (!category) {
+      alert('Please select a category');
+      return;
+    }
+    onAddExpense({
       id: Math.random().toString(36).substr(2, 9),
       category,
       amount,
@@ -77,33 +95,110 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
     }
   };
 
+  const requestEdit = (expense: Expense) => {
+    setPendingAction({ action: 'edit', id: expense.id, data: expense });
+    setPasswordModalOpen(true);
+  };
+
   const requestDelete = (id: string) => {
-    setPendingDeleteId(id);
+    setPendingAction({ action: 'delete', id });
     setPasswordModalOpen(true);
   };
 
   const handlePasswordConfirm = (password: string) => {
-    if (password && password.length > 0) {
-      if (pendingDeleteId) {
-        onDelete(pendingDeleteId);
+    if (password === managerPassword) {
+      if (pendingAction?.action === 'edit' && pendingAction.data) {
+        setEditingId(pendingAction.id!);
+        setEditForm({ ...pendingAction.data });
+      } else if (pendingAction?.action === 'delete' && pendingAction.id) {
+        onDeleteExpense(pendingAction.id);
       }
       setPasswordModalOpen(false);
-      setPendingDeleteId(null);
+      setPendingAction(null);
+    }
+  };
+
+  const handleUpdateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editForm) {
+      onUpdateExpense(editForm);
+      setEditingId(null);
+      setEditForm(null);
     }
   };
 
   return (
     <div className="space-y-6">
+      {editingId && editForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
+            <h3 className="font-black text-lg">Edit Expense</h3>
+            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
+                <select
+                  value={editForm.category}
+                  onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold"
+                >
+                  {allCategories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount ({currency})</label>
+                <input
+                  type="number"
+                  value={editForm.amount}
+                  onChange={e => setEditForm({ ...editForm, amount: Number(e.target.value) })}
+                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Notes</label>
+                <input
+                  type="text"
+                  value={editForm.description}
+                  onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Frequency</label>
+                <select
+                  value={editForm.frequency}
+                  onChange={e => setEditForm({ ...editForm, frequency: e.target.value as ExpenseFrequency })}
+                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold"
+                >
+                  <option value="none">One-time</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 bg-rose-600 text-white font-black py-3 rounded-xl">Update</button>
+                <button type="button" onClick={() => { setEditingId(null); setEditForm(null); }} className="flex-1 bg-slate-200 font-black py-3 rounded-xl">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <PasswordModal
         isOpen={passwordModalOpen}
         onClose={() => {
           setPasswordModalOpen(false);
-          setPendingDeleteId(null);
+          setPendingAction(null);
         }}
         onConfirm={handlePasswordConfirm}
-        title="Delete Expense"
-        message="Enter PIN to confirm deletion"
-        confirmText="Delete"
+        title={pendingAction?.action === 'edit' ? 'Edit Expense' : 'Delete Expense'}
+        message={pendingAction?.action === 'edit' ? 'Enter PIN to confirm editing' : 'Enter PIN to confirm deletion'}
+        confirmText={pendingAction?.action === 'edit' ? 'Edit' : 'Delete'}
       />
 
       <CategoryModal
@@ -201,7 +296,7 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden divide-y divide-slate-50">
-        {items.map(expense => (
+        {expenses.map(expense => (
           <div key={expense.id} className="p-6 flex justify-between items-center hover:bg-slate-50 transition-colors group">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-rose-50 rounded-2xl text-rose-600">
@@ -224,13 +319,16 @@ const ExpenseManager: React.FC<Props> = ({ items, customCategories, onAddCategor
             </div>
             <div className="flex items-center gap-4">
                <p className="font-black text-xl text-rose-600">-{currency}{expense.amount.toLocaleString()}</p>
+               <button onClick={() => requestEdit(expense)} className="p-2 bg-blue-50 text-blue-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-600 hover:text-white" title="Edit (PIN required)">
+                 <EditIcon className="w-4 h-4" />
+               </button>
                <button onClick={() => requestDelete(expense.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white" title="Delete (PIN required)">
                  <TrashIcon className="w-4 h-4" />
                </button>
             </div>
           </div>
         ))}
-        {items.length === 0 && (
+        {expenses.length === 0 && (
           <div className="p-20 text-center opacity-30">
             <div className="flex justify-center mb-4"><ExpenseIcon className="w-16 h-16" /></div>
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No outflows recorded</p>

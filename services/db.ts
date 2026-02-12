@@ -171,6 +171,12 @@ export async function deleteExpense(id: string): Promise<void> {
   triggerAutoSave();
 }
 
+export async function updateExpenseItem(expense: Expense): Promise<void> {
+  await apiPut(`/expenses/${expense.id}`, expense);
+  pendingChanges = true;
+  triggerAutoSave();
+}
+
 export async function fetchAllExpenses(): Promise<Expense[]> {
   return apiGet<Expense[]>('/expenses');
 }
@@ -306,7 +312,7 @@ export async function getAdminStats(adminId: string): Promise<{ stats: AdminStat
   return response.json();
 }
 
-export async function warnUser(adminId: string, userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+export async function warnUser(adminId: string, userId: string, reason?: string): Promise<void> {
   const response = await fetch(`${API_BASE}/admin/users/${userId}/warn`, {
     method: 'POST',
     headers: { 
@@ -319,10 +325,9 @@ export async function warnUser(adminId: string, userId: string, reason?: string)
     const error = await response.json();
     throw new Error(error.error || 'Failed to warn user');
   }
-  return response.json();
 }
 
-export async function suspendUser(adminId: string, userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+export async function suspendUser(adminId: string, userId: string, reason?: string): Promise<void> {
   const response = await fetch(`${API_BASE}/admin/users/${userId}/suspend`, {
     method: 'POST',
     headers: { 
@@ -335,10 +340,9 @@ export async function suspendUser(adminId: string, userId: string, reason?: stri
     const error = await response.json();
     throw new Error(error.error || 'Failed to suspend user');
   }
-  return response.json();
 }
 
-export async function unsuspendUser(adminId: string, userId: string): Promise<{ success: boolean; message: string }> {
+export async function unsuspendUser(adminId: string, userId: string): Promise<void> {
   const response = await fetch(`${API_BASE}/admin/users/${userId}/unsuspend`, {
     method: 'POST',
     headers: { 'x-admin-id': adminId }
@@ -347,10 +351,9 @@ export async function unsuspendUser(adminId: string, userId: string): Promise<{ 
     const error = await response.json();
     throw new Error(error.error || 'Failed to unsuspend user');
   }
-  return response.json();
 }
 
-export async function banUser(adminId: string, userId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+export async function banUser(adminId: string, userId: string, reason?: string): Promise<void> {
   const response = await fetch(`${API_BASE}/admin/users/${userId}/ban`, {
     method: 'POST',
     headers: { 
@@ -363,10 +366,9 @@ export async function banUser(adminId: string, userId: string, reason?: string):
     const error = await response.json();
     throw new Error(error.error || 'Failed to ban user');
   }
-  return response.json();
 }
 
-export async function deleteUser(adminId: string, userId: string): Promise<{ success: boolean; message: string }> {
+export async function deleteUser(adminId: string, userId: string): Promise<void> {
   const response = await fetch(`${API_BASE}/admin/users/${userId}`, {
     method: 'DELETE',
     headers: { 'x-admin-id': adminId }
@@ -375,7 +377,6 @@ export async function deleteUser(adminId: string, userId: string): Promise<{ suc
     const error = await response.json();
     throw new Error(error.error || 'Failed to delete user');
   }
-  return response.json();
 }
 
 // ========== SETTINGS FUNCTIONS ==========

@@ -1,16 +1,6 @@
 // File System Access API service for automatic device storage sync
 // Note: File System Access API is only supported in Chrome/Edge browsers
 
-declare global {
-  interface Window {
-    showDirectoryPicker?: (options?: {
-      id?: string;
-      mode?: 'read' | 'readwrite';
-      startIn?: 'desktop' | 'documents' | 'downloads' | 'filesystem' | 'recent' | 'music' | 'pictures' | 'videos';
-    }) => Promise<FileSystemDirectoryHandle>;
-  }
-}
-
 interface FileSystemHandlePermissionDescriptor {
   mode?: 'read' | 'readwrite';
 }
