@@ -56,7 +56,6 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
     const stockItem = stock.find(s => s.name.toLowerCase() === itemName.toLowerCase());
     
     if (!stockItem) {
-      // Show modal for error instead of alert
       alert(`The item "${itemName}" is not in your stock inventory. Please add it to the Stock section first.`);
       return;
     }
@@ -272,7 +271,7 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
 
           {/* Credit Sale Fields */}
           {isOnCredit && (
-            <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Name</label>
                 <input
@@ -314,8 +313,12 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
                   {currency}{((price * quantity) - (paidAmount || 0)).toLocaleString()}
                 </div>
               </div>
-            </>
+            </div>
           )}
+
+          <button type="submit" className="w-full bg-blue-600 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-blue-200 hover:scale-[1.01] active:scale-[0.99] transition-all">
+            COMPLETE SALE ({currency}{(price * quantity).toLocaleString()})
+          </button>
         </form>
       </div>
 

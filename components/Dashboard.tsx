@@ -44,21 +44,16 @@ const Dashboard: React.FC<Props> = ({
   const [passInput, setPassInput] = useState('');
   const [pendingAction, setPendingAction] = useState<{ type: string, value?: any } | null>(null);
 
-  // Settings modal state
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  // Individual modals state
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
 
   const [tempTime, setTempTime] = useState(reminderTime || '18:00');
-  const [selectedCurrency, setSelectedCurrency] = useState(currency || '$');
-
-  // Currency Converter State
-  const [convAmount, setConvAmount] = useState<number>(0);
-  const [convFrom, setConvFrom] = useState('$');
-  const [convTo, setConvTo] = useState('USHs');
 
   const convertedValue = useMemo(() => {
-    const usdAmount = convAmount / (EXCHANGE_RATES[convFrom] || 1);
-    return usdAmount * (EXCHANGE_RATES[convTo] || 1);
-  }, [convAmount, convFrom, convTo]);
+    return 0;
+  }, []);
 
   const totalSales = (data.sales || []).reduce((acc, s) => acc + (s.price * s.quantity), 0);
   const totalCost = (data.sales || []).reduce((acc, s) => acc + (s.cost * s.quantity), 0);
@@ -116,9 +111,6 @@ const Dashboard: React.FC<Props> = ({
         break;
       case 'setAlarm':
         onReminderChange?.(tempTime);
-        break;
-      case 'setCurrency':
-        onCurrencyChange?.(selectedCurrency);
         break;
       case 'changePassword':
         const newP = prompt("Enter New Manager PIN:");
@@ -319,75 +311,83 @@ const Dashboard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Settings Modal */}
-      {showSettingsModal && (
+      {/* Currency Modal */}
+      {showCurrencyModal && (
         <div className="fixed inset-0 bg-[var(--color-background)]/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-[var(--color-surface)] rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-[var(--color-surface-border)] animate-in zoom-in-95 duration-300">
+          <div className="bg-[var(--color-surface)] rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-[var(--color-surface-border)] animate-in zoom-in-95 duration-300">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black" style={{ color: colors.text }}>Settings</h3>
-              <button onClick={() => setShowSettingsModal(false)} className="p-2 hover:bg-[var(--color-background-alt)] rounded-xl transition-colors">
+              <h3 className="text-xl font-black" style={{ color: colors.text }}>Set Currency</h3>
+              <button onClick={() => setShowCurrencyModal(false)} className="p-2 hover:bg-[var(--color-background-alt)] rounded-xl transition-colors">
                 <XIcon className="w-5 h-5" style={{ color: colors.textMuted }} />
               </button>
             </div>
             
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest" style={{ color: colors.textMuted }}>Daily Reminder Time</label>
-                <div className="flex items-center gap-3 p-4 bg-[var(--color-background-alt)] rounded-xl">
-                  <BellIcon className="w-5 h-5" style={{ color: colors.primary }} />
-                  <input
-                    type="time"
-                    value={tempTime}
-                    onChange={(e) => setTempTime(e.target.value)}
-                    className="flex-1 bg-transparent outline-none font-bold"
-                    style={{ color: colors.text }}
-                  />
-                </div>
+            <div className="space-y-4">
+              <p className="text-sm" style={{ color: colors.textMuted }}>Select your display currency</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(EXCHANGE_RATES).map(curr => (
+                  <button
+                    key={curr}
+                    onClick={() => {
+                      onCurrencyChange?.(curr);
+                      setShowCurrencyModal(false);
+                    }}
+                    className={`px-6 py-3 rounded-xl font-bold transition-all ${
+                      currency === curr 
+                        ? 'bg-blue-600 text-white shadow-lg' 
+                        : 'bg-[var(--color-background-alt)] hover:bg-[var(--color-background)]'
+                    }`}
+                    style={{ 
+                      color: currency === curr ? 'white' : colors.text 
+                    }}
+                  >
+                    {curr}
+                  </button>
+                ))}
               </div>
-              
-              <div className="space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest" style={{ color: colors.textMuted }}>Display Currency</label>
-                <div className="flex flex-wrap gap-2">
-                  {Object.keys(EXCHANGE_RATES).map(curr => (
-                    <button
-                      key={curr}
-                      onClick={() => setSelectedCurrency(curr)}
-                      className={`px-4 py-2 rounded-xl font-bold transition-all ${
-                        selectedCurrency === curr 
-                          ? 'bg-blue-600 text-white shadow-lg' 
-                          : 'bg-[var(--color-background-alt)] hover:bg-[var(--color-background)]'
-                      }`}
-                      style={{ 
-                        color: selectedCurrency === curr ? 'white' : colors.text 
-                      }}
-                    >
-                      {curr}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <label className="text-xs font-black uppercase tracking-widest" style={{ color: colors.textMuted }}>Security</label>
-                <button 
-                  onClick={() => {
-                    const newP = prompt("Enter New Manager PIN:");
-                    if (newP) onChangePassword?.(newP);
-                  }}
-                  className="w-full flex items-center justify-between p-4 bg-[var(--color-background-alt)] rounded-xl hover:bg-[var(--color-background)] transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <LockIcon className="w-5 h-5" style={{ color: colors.primary }} />
-                    <span className="font-bold" style={{ color: colors.text }}>Change Manager PIN</span>
-                  </div>
-                  <span className="text-xs font-black uppercase" style={{ color: colors.textMuted }}>Edit</span>
-                </button>
+            </div>
+            
+            <div className="mt-8">
+              <button 
+                onClick={() => setShowCurrencyModal(false)}
+                className="w-full py-4 text-xs font-black uppercase tracking-widest hover:opacity-70 transition-colors rounded-2xl"
+                style={{ color: colors.textMuted, backgroundColor: colors.backgroundAlt }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reminder Modal */}
+      {showReminderModal && (
+        <div className="fixed inset-0 bg-[var(--color-background)]/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-[var(--color-surface)] rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-[var(--color-surface-border)] animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black" style={{ color: colors.text }}>Set Reminder</h3>
+              <button onClick={() => setShowReminderModal(false)} className="p-2 hover:bg-[var(--color-background-alt)] rounded-xl transition-colors">
+                <XIcon className="w-5 h-5" style={{ color: colors.textMuted }} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <p className="text-sm" style={{ color: colors.textMuted }}>Set daily reminder time for taking records</p>
+              <div className="flex items-center gap-3 p-4 bg-[var(--color-background-alt)] rounded-xl">
+                <BellIcon className="w-5 h-5" style={{ color: colors.primary }} />
+                <input
+                  type="time"
+                  value={tempTime}
+                  onChange={(e) => setTempTime(e.target.value)}
+                  className="flex-1 bg-transparent outline-none font-bold text-lg"
+                  style={{ color: colors.text }}
+                />
               </div>
             </div>
             
             <div className="mt-8 flex gap-3">
               <button 
-                onClick={() => setShowSettingsModal(false)}
+                onClick={() => setShowReminderModal(false)}
                 className="flex-1 py-4 text-xs font-black uppercase tracking-widest hover:opacity-70 transition-colors rounded-2xl"
                 style={{ color: colors.textMuted, backgroundColor: colors.backgroundAlt }}
               >
@@ -396,13 +396,53 @@ const Dashboard: React.FC<Props> = ({
               <button 
                 onClick={() => {
                   onReminderChange?.(tempTime);
-                  onCurrencyChange?.(selectedCurrency);
-                  setShowSettingsModal(false);
+                  setShowReminderModal(false);
                 }}
                 className="flex-[2] py-4 text-white text-xs font-black rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
                 style={{ backgroundColor: colors.primary }}
               >
-                Save Settings
+                Save Reminder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unlock Modal */}
+      {showUnlockModal && (
+        <div className="fixed inset-0 bg-[var(--color-background)]/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-[var(--color-surface)] rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-[var(--color-surface-border)] animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black" style={{ color: colors.text }}>Unlock Hidden Data</h3>
+              <button onClick={() => setShowUnlockModal(false)} className="p-2 hover:bg-[var(--color-background-alt)] rounded-xl transition-colors">
+                <XIcon className="w-5 h-5" style={{ color: colors.textMuted }} />
+              </button>
+            </div>
+            
+            <div className="space-y-4 text-center">
+              <div className="p-4 rounded-full mx-auto w-16 h-16 flex items-center justify-center" style={{ backgroundColor: `${colors.primary}20` }}>
+                <UnlockIcon className="w-8 h-8" style={{ color: colors.primary }} />
+              </div>
+              <p className="text-sm" style={{ color: colors.textMuted }}>Enter your PIN to unlock hidden data and statistics</p>
+            </div>
+            
+            <div className="mt-8 flex gap-3">
+              <button 
+                onClick={() => setShowUnlockModal(false)}
+                className="flex-1 py-4 text-xs font-black uppercase tracking-widest hover:opacity-70 transition-colors rounded-2xl"
+                style={{ color: colors.textMuted, backgroundColor: colors.backgroundAlt }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  setIsUnlocked(true);
+                  setShowUnlockModal(false);
+                }}
+                className="flex-[2] py-4 text-white text-xs font-black rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                style={{ backgroundColor: colors.primary }}
+              >
+                Unlock
               </button>
             </div>
           </div>
