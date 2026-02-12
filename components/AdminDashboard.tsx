@@ -47,6 +47,21 @@ export default function AdminDashboard({ adminId, onLogout, currency }: AdminDas
       setStats(statsData.stats);
     } catch (error) {
       console.error('Failed to load admin data:', error);
+      // Set empty stats to prevent crashes
+      setStats({
+        totalUsers: 0,
+        activeUsers: 0,
+        suspendedUsers: 0,
+        bannedUsers: 0,
+        warnedUsers: 0,
+        totalSales: 0,
+        totalRevenue: 0,
+        totalExpenses: 0,
+        totalDebts: 0,
+        totalStockItems: 0,
+        lowStockItems: 0
+      });
+      setUsers([]);
     } finally {
       setLoading(false);
     }

@@ -439,7 +439,15 @@ function App() {
             <NavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<ReportsIcon />} label="Reports" />
             <NavButton active={false} onClick={() => setShowRecordsManager(true)} icon={<FolderIcon />} label="Records" />
             {user?.role === 'admin' && (
-              <NavButton active={showAdminDashboard} onClick={() => setShowAdminDashboard(true)} icon={<ShieldIcon />} label="Admin Panel" />
+              <NavButton 
+                active={showAdminDashboard} 
+                onClick={() => {
+                  setAdminId(user.id);
+                  setShowAdminDashboard(true);
+                }} 
+                icon={<ShieldIcon />} 
+                label="Admin Panel" 
+              />
             )}
           </nav>
           <div className="mt-auto p-4 bg-[var(--color-background-alt)] rounded-2xl border border-[var(--color-surface-border)]">

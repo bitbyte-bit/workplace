@@ -108,9 +108,13 @@ const Dashboard: React.FC<Props> = ({
     switch (type) {
       case 'unlock':
         setIsUnlocked(true);
+        setShowUnlockModal(false);
         break;
       case 'setAlarm':
         onReminderChange?.(tempTime);
+        break;
+      case 'setCurrency':
+        setShowCurrencyModal(true);
         break;
       case 'changePassword':
         const newP = prompt("Enter New Manager PIN:");
