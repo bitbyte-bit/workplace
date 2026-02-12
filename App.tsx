@@ -466,6 +466,11 @@ function App() {
                 <Dashboard 
                   data={businessData}
                   currency={currency}
+                  currentPassword={managerPassword}
+                  onChangePassword={handleChangePassword}
+                  onCurrencyChange={handleCurrencyChange}
+                  reminderTime={reminderTime}
+                  onReminderChange={handleReminderChange}
                 />
               )}
               
