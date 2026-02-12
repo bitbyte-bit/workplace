@@ -17,7 +17,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
 import { triggerAutoSync, isDeviceSyncEnabled } from './services/fileSystem';
 import { User } from './services/db';
-import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon } from './components/Icons';
+import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon, ShieldIcon } from './components/Icons';
 import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
 
 interface SearchResult {
@@ -421,6 +421,9 @@ function App() {
             <NavButton active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} icon={<ExpenseIcon />} label="Expenses" />
             <NavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<ReportsIcon />} label="Reports" />
             <NavButton active={false} onClick={() => setShowRecordsManager(true)} icon={<FolderIcon />} label="Records" />
+            {user?.role === 'admin' && (
+              <NavButton active={showAdminDashboard} onClick={() => setShowAdminDashboard(true)} icon={<ShieldIcon />} label="Admin Panel" />
+            )}
           </nav>
           <div className="mt-auto p-4 bg-[var(--color-background-alt)] rounded-2xl border border-[var(--color-surface-border)]">
             <p className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mb-2">Reminder</p>
