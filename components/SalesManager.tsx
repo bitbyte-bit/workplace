@@ -35,6 +35,12 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
   const [newCatName, setNewCatName] = useState('');
   const [showAddCat, setShowAddCat] = useState(false);
 
+  // Credit sale state
+  const [isOnCredit, setIsOnCredit] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [paidAmount, setPaidAmount] = useState(0);
+
   // Category modal state
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
@@ -55,6 +61,9 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
       return;
     }
 
+    const totalAmount = price * quantity;
+    const balance = totalAmount - (paidAmount || 0);
+    
     const newSale: Sale = {
       id: Math.random().toString(36).substr(2, 9),
       itemName,
@@ -63,6 +72,11 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
       price,
       cost: stockItem.costPrice,
       date: Date.now(),
+      isOnCredit,
+      customerName: isOnCredit ? customerName : undefined,
+      customerPhone: isOnCredit ? customerPhone : undefined,
+      paidAmount: isOnCredit ? (paidAmount || 0) : undefined,
+      balance: isOnCredit ? balance : undefined,
     };
     
     onAddSale(newSale);
@@ -70,6 +84,10 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
     setCategory('Smartphones');
     setQuantity(1);
     setPrice(0);
+    setIsOnCredit(false);
+    setCustomerName('');
+    setCustomerPhone('');
+    setPaidAmount(0);
   };
 
   const openCategoryEdit = (cat: string) => {
@@ -235,9 +253,69 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
               />
             </div>
           </div>
-          <button type="submit" className="w-full bg-blue-600 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-blue-200 hover:scale-[1.01] active:scale-[0.99] transition-all">
-            COMPLETE SALE ({currency}{(price * quantity).toLocaleString()})
-          </button>
+
+          {/* Credit Sale Toggle */}
+          <div className="col-span-full">
+            <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={isOnCredit}
+                onChange={(e) => setIsOnCredit(e.target.checked)}
+                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <div>
+                <span className="font-bold text-slate-700">Sold on Credit / Installments</span>
+                <p className="text-xs text-slate-400">Track partial payments and customer information</p>
+              </div>
+            </label>
+          </div>
+
+          {/* Credit Sale Fields */}
+          {isOnCredit && (
+            <>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Name</label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  placeholder="Customer full name"
+                  required={isOnCredit}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  placeholder="07xx xxx xxx"
+                  required={isOnCredit}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount Paid ({currency})</label>
+                <input
+                  type="number"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(Math.min(Number(e.target.value), price * quantity))}
+                  className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  min="0"
+                  max={price * quantity}
+                  step="0.01"
+                  required={isOnCredit}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Balance ({currency})</label>
+                <div className="w-full p-3 bg-slate-100 border border-slate-200 rounded-2xl font-black text-lg text-slate-700">
+                  {currency}{((price * quantity) - (paidAmount || 0)).toLocaleString()}
+                </div>
+              </div>
+            </>
+          )}
         </form>
       </div>
 
@@ -264,6 +342,15 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
                     <td className="px-8 py-4">
                       <p className="font-bold text-slate-800">{sale.itemName}</p>
                       <p className="text-[10px] font-black text-blue-500 uppercase tracking-tighter">{sale.category}</p>
+                      {sale.isOnCredit && (
+                        <div className="mt-1 flex items-center gap-1">
+                          <svg className="w-3 h-3 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z"/>
+                            <path d="M10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 6.25a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 11.25z"/>
+                          </svg>
+                          <span className="text-[10px] font-bold text-amber-600 uppercase">Credit</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-8 py-4 text-sm font-bold">{sale.quantity}</td>
                     <td className="px-8 py-4 text-right">
@@ -271,6 +358,11 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
                        <p className={`text-[10px] font-black ${profitLoss >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                          {profitLoss >= 0 ? '+' : '-'}{currency}{Math.abs(profitLoss).toLocaleString()} net
                        </p>
+                       {sale.isOnCredit && sale.balance && sale.balance > 0 && (
+                         <p className="text-[10px] font-bold text-amber-600 mt-1">
+                           Balance: {currency}{sale.balance.toLocaleString()}
+                         </p>
+                       )}
                     </td>
                     <td className="px-8 py-4 text-right">
                        <button onClick={() => requestDelete(sale.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 hover:text-white" title="Delete Sale (PIN required)">

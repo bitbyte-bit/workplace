@@ -7,6 +7,12 @@ export interface Sale {
   price: number;
   cost: number;
   date: number;
+  // Sold on credit fields
+  isOnCredit?: boolean;
+  customerName?: string;
+  customerPhone?: string;
+  paidAmount?: number;
+  balance?: number;
 }
 
 export interface CostHistoryEntry {

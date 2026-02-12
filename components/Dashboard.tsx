@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { BusinessData } from '../types';
-import { SparkleIcon, BellIcon, ClockIcon, TrendingIcon, LockIcon, ExchangeIcon, CheckCircleIcon, PackageIcon, SalesIcon } from './Icons';
+import { SparkleIcon, BellIcon, ClockIcon, TrendingIcon, LockIcon, UnlockIcon, ExchangeIcon, CheckCircleIcon, PackageIcon, SalesIcon, XIcon } from './Icons';
 import { isExpenseDueSoon } from '../utils/expenseUtils';
 import { useTheme } from '../contexts/ThemeContext';
+import PasswordModal from './PasswordModal';
 
 interface Props {
   data: BusinessData;
@@ -43,6 +44,9 @@ const Dashboard: React.FC<Props> = ({
   const [passInput, setPassInput] = useState('');
   const [pendingAction, setPendingAction] = useState<{ type: string, value?: any } | null>(null);
 
+  // Settings modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
   const [tempTime, setTempTime] = useState(reminderTime || '18:00');
   const [selectedCurrency, setSelectedCurrency] = useState(currency || '$');
 
@@ -81,7 +85,7 @@ const Dashboard: React.FC<Props> = ({
   }, [data.sales]);
 
   const initiateAction = (type: string, value?: any) => {
-    if (isUnlocked && type !== 'changePassword') {
+    if (isUnlocked && type !== 'changePassword' && type !== 'unlock') {
        executeAction(type, value);
     } else {
       setPendingAction({ type, value });
@@ -147,31 +151,31 @@ const Dashboard: React.FC<Props> = ({
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {showPassModal && (
-        <div className="fixed inset-0 bg-[var(--color-background)]/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <form onSubmit={handlePassVerify} className="bg-[var(--color-surface)] rounded-[2.5rem] w-full max-w-sm p-8 shadow-2xl border border-[var(--color-surface-border)] flex flex-col items-center animate-in zoom-in-95 duration-300">
-            <div className="p-4 rounded-full mb-4" style={{ backgroundColor: `${colors.primary}20` }}>
-              <LockIcon className="w-8 h-8" style={{ color: colors.primary }} />
-            </div>
-            <h4 className="text-xl font-black mb-2" style={{ color: colors.text }}>Manager Verification</h4>
-            <p className="text-xs font-bold uppercase tracking-widest text-center mb-6" style={{ color: colors.textMuted }}>Enter your PIN to perform sensitive actions</p>
-            <input 
-              autoFocus
-              type="password" 
-              value={passInput} 
-              onChange={e => setPassInput(e.target.value)}
-              placeholder="••••"
-              className="w-full text-center text-3xl tracking-[0.5em] p-4 bg-[var(--color-background-alt)] border border-[var(--color-surface-border)] rounded-2xl outline-none focus:ring-4 mb-6 font-black"
-              style={{ 
-                '--tw-ring-color': `${colors.primary}40`,
-                color: colors.text,
-              } as React.CSSProperties}
-            />
-            <div className="flex gap-2 w-full">
-              <button type="button" onClick={() => { setShowPassModal(false); setPassInput(''); }} className="flex-1 py-4 text-xs font-black uppercase tracking-widest hover:opacity-70 transition-colors" style={{ color: colors.textMuted }}>Cancel</button>
-              <button type="submit" className="flex-[2] py-4 text-white text-xs font-black rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest" style={{ backgroundColor: colors.text, color: colors.textInverse }}>Verify PIN</button>
-            </div>
-          </form>
-        </div>
+        <PasswordModal
+          isOpen={showPassModal}
+          onClose={() => {
+            setShowPassModal(false);
+            setPassInput('');
+            setPendingAction(null);
+          }}
+          onConfirm={(password: string) => {
+            if (password === (currentPassword || '1234')) {
+              if (pendingAction) {
+                executeAction(pendingAction.type, pendingAction.value);
+              }
+              setIsUnlocked(true);
+              setShowPassModal(false);
+              setPassInput('');
+              setPendingAction(null);
+            } else {
+              alert("Invalid Password. Access Denied.");
+              setPassInput('');
+            }
+          }}
+          title="Manager Verification"
+          message="Enter your PIN to perform sensitive actions"
+          confirmText="Verify"
+        />
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -314,6 +318,96 @@ const Dashboard: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-[var(--color-background)]/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-[var(--color-surface)] rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl border border-[var(--color-surface-border)] animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black" style={{ color: colors.text }}>Settings</h3>
+              <button onClick={() => setShowSettingsModal(false)} className="p-2 hover:bg-[var(--color-background-alt)] rounded-xl transition-colors">
+                <XIcon className="w-5 h-5" style={{ color: colors.textMuted }} />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest" style={{ color: colors.textMuted }}>Daily Reminder Time</label>
+                <div className="flex items-center gap-3 p-4 bg-[var(--color-background-alt)] rounded-xl">
+                  <BellIcon className="w-5 h-5" style={{ color: colors.primary }} />
+                  <input
+                    type="time"
+                    value={tempTime}
+                    onChange={(e) => setTempTime(e.target.value)}
+                    className="flex-1 bg-transparent outline-none font-bold"
+                    style={{ color: colors.text }}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest" style={{ color: colors.textMuted }}>Display Currency</label>
+                <div className="flex flex-wrap gap-2">
+                  {Object.keys(EXCHANGE_RATES).map(curr => (
+                    <button
+                      key={curr}
+                      onClick={() => setSelectedCurrency(curr)}
+                      className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                        selectedCurrency === curr 
+                          ? 'bg-blue-600 text-white shadow-lg' 
+                          : 'bg-[var(--color-background-alt)] hover:bg-[var(--color-background)]'
+                      }`}
+                      style={{ 
+                        color: selectedCurrency === curr ? 'white' : colors.text 
+                      }}
+                    >
+                      {curr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <label className="text-xs font-black uppercase tracking-widest" style={{ color: colors.textMuted }}>Security</label>
+                <button 
+                  onClick={() => {
+                    const newP = prompt("Enter New Manager PIN:");
+                    if (newP) onChangePassword?.(newP);
+                  }}
+                  className="w-full flex items-center justify-between p-4 bg-[var(--color-background-alt)] rounded-xl hover:bg-[var(--color-background)] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <LockIcon className="w-5 h-5" style={{ color: colors.primary }} />
+                    <span className="font-bold" style={{ color: colors.text }}>Change Manager PIN</span>
+                  </div>
+                  <span className="text-xs font-black uppercase" style={{ color: colors.textMuted }}>Edit</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="mt-8 flex gap-3">
+              <button 
+                onClick={() => setShowSettingsModal(false)}
+                className="flex-1 py-4 text-xs font-black uppercase tracking-widest hover:opacity-70 transition-colors rounded-2xl"
+                style={{ color: colors.textMuted, backgroundColor: colors.backgroundAlt }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  onReminderChange?.(tempTime);
+                  onCurrencyChange?.(selectedCurrency);
+                  setShowSettingsModal(false);
+                }}
+                className="flex-[2] py-4 text-white text-xs font-black rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                style={{ backgroundColor: colors.primary }}
+              >
+                Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

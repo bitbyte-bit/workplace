@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Debt } from '../types';
-import { TrashIcon, DebtIcon, ClockIcon } from './Icons';
+import { TrashIcon, DebtIcon, ClockIcon, PhoneIcon, MessageIcon, WhatsAppIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 
 interface Props {
@@ -77,6 +77,21 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
       setEditingId(null);
       setEditForm(null);
     }
+  };
+
+  // Contact actions
+  const handleCall = (phone: string) => {
+    window.open(`tel:${phone}`, '_self');
+  };
+
+  const handleSMS = (phone: string) => {
+    window.open(`sms:${phone}`, '_self');
+  };
+
+  const handleWhatsApp = (phone: string) => {
+    // Remove any non-digit characters for WhatsApp
+    const cleanPhone = phone.replace(/\D/g, '');
+    window.open(`https://wa.me/${cleanPhone}`, '_blank');
   };
 
   return (
@@ -159,6 +174,21 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
                     <button onClick={() => requestEdit(debt)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-100 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Edit (PIN required)">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeWidth={2}/></svg>
                     </button>
+                    <div className="flex gap-1">
+                      {debt.phoneNumber && (
+                        <>
+                          <button onClick={() => handleCall(debt.phoneNumber)} className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all" title="Call">
+                            <PhoneIcon className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleSMS(debt.phoneNumber)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all" title="SMS">
+                            <MessageIcon className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleWhatsApp(debt.phoneNumber)} className="p-2 bg-[#25D366] text-white rounded-xl hover:bg-[#20bd5c] opacity-0 group-hover:opacity-100 transition-all" title="WhatsApp">
+                            <WhatsAppIcon className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                     <button onClick={() => requestDelete(debt.id)} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity" title="Delete (PIN required)">
                       <TrashIcon className="w-4 h-4" />
                     </button>
