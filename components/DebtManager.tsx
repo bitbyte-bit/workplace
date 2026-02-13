@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { Debt } from '../types';
-import { TrashIcon, DebtIcon, ClockIcon, PhoneIcon, MessageIcon, WhatsAppIcon } from './Icons';
+import { TrashIcon, DebtIcon, ClockIcon, PhoneIcon, MessageIcon, WhatsAppIcon, SendIcon } from './Icons';
 import PasswordModal from './PasswordModal';
+import { sendWhatsAppMessage } from '../services/db';
 
 interface Props {
   debts: Debt[];
@@ -11,11 +12,12 @@ interface Props {
   onToggleDebt: (id: string) => void;
   onDeleteDebt: (id: string) => void;
   currency: string;
+  businessName?: string;
 }
 
-type ModalAction = 'edit' | 'delete' | null;
+type ModalAction = 'edit' | 'delete' | 'whatsapp' | null;
 
-const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggleDebt, onDeleteDebt, currency }) => {
+const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggleDebt, onDeleteDebt, currency, businessName = 'Our Business' }) => {
   const [debtorName, setDebtorName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [amount, setAmount] = useState(0);
@@ -27,6 +29,7 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
   // Password modal state
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ action: ModalAction; id?: string; data?: Debt } | null>(null);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +52,11 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
     setPasswordModalOpen(true);
   };
 
+  const requestWhatsApp = (debt: Debt) => {
+    setPendingAction({ action: 'whatsapp', id: debt.id, data: debt });
+    setPasswordModalOpen(true);
+  };
+
   const handlePasswordConfirm = (password: string) => {
     if (password === '1234') {
       if (pendingAction?.action === 'edit' && pendingAction.data) {
@@ -56,6 +64,8 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
         setEditForm({ ...pendingAction.data });
       } else if (pendingAction?.action === 'delete' && pendingAction.id) {
         onDeleteDebt(pendingAction.id);
+      } else if (pendingAction?.action === 'whatsapp' && pendingAction.data) {
+        sendDebtReminder(pendingAction.data);
       }
       setPasswordModalOpen(false);
       setPendingAction(null);
@@ -68,6 +78,20 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
         }
       }
     }
+  };
+
+  const sendDebtReminder = async (debt: Debt) => {
+    setSendingWhatsApp(true);
+    const message = `Hello ${debt.debtorName}, this is a reminder that you have an outstanding balance of ${currency}${debt.amount.toLocaleString()} at ${businessName}. ${debt.description ? 'Note: ' + debt.description + '. ' : ''}Please arrange payment at your earliest convenience. Thank you!`;
+    
+    const result = await sendWhatsAppMessage(debt.phoneNumber, message);
+    
+    if (result.success) {
+      alert('WhatsApp reminder sent successfully!');
+    } else {
+      alert('Failed to send WhatsApp: ' + result.error + '\n\nTip: Configure WhatsApp in Admin Settings or use the manual WhatsApp button.');
+    }
+    setSendingWhatsApp(false);
   };
 
   const handleUpdateSubmit = (e: React.FormEvent) => {
@@ -183,9 +207,26 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
                           <button onClick={() => handleSMS(debt.phoneNumber)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all" title="SMS">
                             <MessageIcon className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleWhatsApp(debt.phoneNumber)} className="p-2 bg-[#25D366] text-white rounded-xl hover:bg-[#20bd5c] opacity-0 group-hover:opacity-100 transition-all" title="WhatsApp">
+                          <button onClick={() => handleWhatsApp(debt.phoneNumber)} className="p-2 bg-[#25D366] text-white rounded-xl hover:bg-[#20bd5c] opacity-0 group-hover:opacity-100 transition-all" title="WhatsApp Web">
                             <WhatsAppIcon className="w-4 h-4" />
                           </button>
+                          {!debt.isPaid && (
+                            <button 
+                              onClick={() => requestWhatsApp(debt)} 
+                              disabled={sendingWhatsApp}
+                              className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50" 
+                              title="Send Reminder via System"
+                            >
+                              {sendingWhatsApp ? (
+                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <SendIcon className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

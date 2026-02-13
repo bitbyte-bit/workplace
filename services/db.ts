@@ -418,6 +418,60 @@ export async function deleteSettings(userId: string | undefined, key: string): P
   if (!response.ok) throw new Error('Failed to delete setting');
 }
 
+// ========== THEME FUNCTIONS ==========
+
+export type Theme = 'light' | 'dark' | 'blue' | 'green' | 'purple' | 'warm';
+
+export async function fetchTheme(userId?: string): Promise<Theme> {
+  try {
+    const settings = await fetchSettings(userId);
+    return (settings.theme as Theme) || 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+export async function saveTheme(theme: Theme, userId?: string): Promise<void> {
+  await saveSetting(userId, 'theme', theme);
+}
+
+// ========== WHATSAPP FUNCTIONS ==========
+
+export interface WhatsAppConfig {
+  accountSid: string;
+  authToken: string;
+  fromNumber: string;
+}
+
+export async function sendWhatsAppMessage(to: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/whatsapp/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, message }),
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      return { success: true, messageId: result.messageId };
+    } else {
+      return { success: false, error: result.error || result.message };
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function saveWhatsAppConfig(config: WhatsAppConfig): Promise<void> {
+  const response = await fetch(`${API_BASE}/whatsapp/config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config),
+  });
+  if (!response.ok) throw new Error('Failed to save WhatsApp config');
+}
+
 // Summary function
 export async function fetchSummary() {
   return apiGet<{

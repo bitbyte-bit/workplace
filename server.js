@@ -1009,6 +1009,85 @@ app.delete('/api/settings', (req, res) => {
   }
 });
 
+// ========== WHATSAPP ENDPOINTS ==========
+
+// Send WhatsApp message via Twilio
+app.post('/api/whatsapp/send', async (req, res) => {
+  try {
+    const { to, message } = req.body;
+    
+    if (!to || !message) {
+      return res.status(400).json({ error: 'Phone number and message are required' });
+    }
+    
+    // Get WhatsApp credentials from settings
+    const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+    stmt.bind(['whatsapp_config']);
+    const configStr = stmt.step() ? stmt.getAsObject().value : null;
+    stmt.free();
+    
+    let config = { accountSid: '', authToken: '', fromNumber: '' };
+    if (configStr) {
+      try {
+        config = JSON.parse(configStr);
+      } catch {}
+    }
+    
+    // If no credentials configured, return info message
+    if (!config.accountSid || !config.authToken || !config.fromNumber) {
+      return res.json({ 
+        success: false, 
+        message: 'WhatsApp not configured. Please add Twilio credentials in settings.'
+      });
+    }
+    
+    // Clean phone number
+    const cleanPhone = to.replace(/\D/g, '');
+    const formattedTo = `whatsapp:+${cleanPhone}`;
+    const formattedFrom = `whatsapp:${config.fromNumber}`;
+    
+    // Using Twilio REST API
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${config.accountSid}/Messages.json`;
+    
+    const response = await fetch(twilioUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        To: formattedTo,
+        From: formattedFrom,
+        Body: message,
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      res.json({ success: true, messageId: result.sid });
+    } else {
+      res.status(response.status).json({ error: result.message || 'Failed to send WhatsApp message' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save WhatsApp configuration
+app.post('/api/whatsapp/config', (req, res) => {
+  try {
+    const { accountSid, authToken, fromNumber } = req.body;
+    
+    db.run('INSERT OR REPLACE INTO settings (userId, key, value) VALUES (?, ?, ?)', 
+      [null, 'whatsapp_config', JSON.stringify({ accountSid, authToken, fromNumber })]);
+    triggerSave();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Handle SPA routing
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {

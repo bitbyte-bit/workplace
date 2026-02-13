@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
-export type Theme = 'light' | 'dark' | 'blue' | 'green' | 'purple' | 'warm';
+import { Theme, fetchTheme, saveTheme } from '../services/db';
 
 interface ThemeColors {
   primary: string;
@@ -106,14 +105,27 @@ const themeColors: Record<Theme, ThemeColors> = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('zion_theme');
-    return (saved as Theme) || 'light';
-  });
+  const [theme, setThemeState] = useState<Theme>('light');
+  const [themeLoaded, setThemeLoaded] = useState(false);
 
-  const setTheme = useCallback((newTheme: Theme) => {
+  // Load theme from database on mount
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const savedTheme = await fetchTheme();
+        setThemeState(savedTheme);
+      } catch (error) {
+        console.error('Failed to load theme from database:', error);
+      } finally {
+        setThemeLoaded(true);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  const setTheme = useCallback(async (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('zion_theme', newTheme);
+    await saveTheme(newTheme);
   }, []);
 
   useEffect(() => {
