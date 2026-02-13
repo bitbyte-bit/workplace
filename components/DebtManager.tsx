@@ -12,11 +12,12 @@ interface Props {
   onDeleteDebt: (id: string) => void;
   currency: string;
   businessName?: string;
+  managerPassword?: string;
 }
 
 type ModalAction = 'edit' | 'delete' | 'whatsapp' | null;
 
-const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggleDebt, onDeleteDebt, currency, businessName = 'Our Business' }) => {
+const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggleDebt, onDeleteDebt, currency, businessName = 'Our Business', managerPassword = '' }) => {
   const [debtorName, setDebtorName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [amount, setAmount] = useState(0);
@@ -56,7 +57,7 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
   };
 
   const handlePasswordConfirm = (password: string) => {
-    if (password === '1234') {
+    if (password === managerPassword) {
       if (pendingAction?.action === 'edit' && pendingAction.data) {
         setEditingId(pendingAction.id!);
         setEditForm({ ...pendingAction.data });

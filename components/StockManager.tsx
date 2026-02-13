@@ -15,11 +15,12 @@ interface Props {
   onAddCategory: (category: string) => void;
   onUpdateCategory: (oldCategory: string, newCategory: string) => void;
   onDeleteCategory: (category: string) => void;
+  managerPassword?: string;
 }
 
 type ModalAction = 'edit' | 'delete' | null;
 
-const StockManager: React.FC<Props> = ({ items, customCategories, onAddItem, onUpdateItem, onDeleteItem, currency, onAddCategory, onUpdateCategory, onDeleteCategory }) => {
+const StockManager: React.FC<Props> = ({ items, customCategories, onAddItem, onUpdateItem, onDeleteItem, currency, onAddCategory, onUpdateCategory, onDeleteCategory, managerPassword = '' }) => {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(0);
   const [costPrice, setCostPrice] = useState(0);
@@ -78,7 +79,7 @@ const StockManager: React.FC<Props> = ({ items, customCategories, onAddItem, onU
   };
 
   const handlePasswordConfirm = (password: string) => {
-    if (password === '1234') {
+    if (password === managerPassword) {
       if (pendingAction?.action === 'edit' && pendingAction.data) {
         setEditingId(pendingAction.id!);
         setEditForm({ ...pendingAction.data });

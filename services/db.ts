@@ -435,6 +435,30 @@ export async function saveTheme(theme: Theme, userId?: string): Promise<void> {
   await saveSetting(userId, 'theme', theme);
 }
 
+// ========== PIN/MANAGER PASSWORD FUNCTIONS ==========
+
+export async function fetchManagerPin(): Promise<string> {
+  try {
+    const settings = await fetchSettings(undefined);
+    return (settings.managerPassword as string) || '';
+  } catch {
+    return '';
+  }
+}
+
+export async function saveManagerPin(pin: string, userId?: string): Promise<void> {
+  await saveSetting(userId, 'managerPassword', pin);
+}
+
+export async function hasManagerPin(): Promise<boolean> {
+  try {
+    const settings = await fetchSettings(undefined);
+    return !!settings.managerPassword;
+  } catch {
+    return false;
+  }
+}
+
 // ========== WHATSAPP FUNCTIONS ==========
 
 export interface WhatsAppConfig {

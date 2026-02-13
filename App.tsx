@@ -12,11 +12,9 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import RecordsManager from './components/RecordsManager';
 import Auth from './components/Auth';
 import AdminDashboard from './components/AdminDashboard';
-import StoragePermission from './components/StoragePermission';
 import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
-import { triggerAutoSync, isDeviceSyncEnabled } from './services/fileSystem';
-import { User } from './services/db';
+import { User, hasManagerPin, fetchManagerPin, saveManagerPin } from './services/db';
 import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon, ShieldIcon } from './components/Icons';
 import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
 
@@ -35,6 +33,7 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [adminId, setAdminId] = useState<string | null>(null);
+  const [pinRequired, setPinRequired] = useState(false);
   
   const [sales, setSales] = useState<Sale[]>([]);
   const [stock, setStock] = useState<StockItem[]>([]);
@@ -43,13 +42,11 @@ function App() {
   const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   const [notification, setNotification] = useState<{ message: string, type: NotificationType } | null>(null);
-  const [managerPassword, setManagerPassword] = useState('1234');
+  const [managerPassword, setManagerPassword] = useState('');
   const [currency, setCurrency] = useState('$');
   const [reminderTime, setReminderTime] = useState('18:00');
   const [lastAlarmShown, setLastAlarmShown] = useState<string | null>(null);
   const [showRecordsManager, setShowRecordsManager] = useState(false);
-  const [showStoragePrompt, setShowStoragePrompt] = useState(false);
-  const [deviceSyncEnabled, setDeviceSyncEnabled] = useState(false);
 
   const showNotification = useCallback((message: string, type: NotificationType = 'success') => {
     setNotification({ message, type });
@@ -63,6 +60,22 @@ function App() {
       showNotification("Incorrect PIN. Action denied.", "error");
     }
   }, [managerPassword, showNotification]);
+
+  // Check for PIN availability on app load
+  useEffect(() => {
+    const checkPinAvailability = async () => {
+      try {
+        const pinExists = await hasManagerPin();
+        if (!pinExists) {
+          // PIN not set - admin should set it
+          console.log('PIN not set. Admin should configure it.');
+        }
+      } catch (error) {
+        console.error('Failed to check PIN availability:', error);
+      }
+    };
+    checkPinAvailability();
+  }, []);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -105,22 +118,14 @@ function App() {
     checkAuth();
   }, []);
 
-  const handleStorageGranted = () => {
-    setShowStoragePrompt(false);
-    setDeviceSyncEnabled(true);
-    showNotification('Auto-sync to device enabled!', 'success');
-  };
-
-  const handleStorageDenied = () => {
-    setShowStoragePrompt(false);
-    setDeviceSyncEnabled(false);
-  };
-
-  const triggerSync = useCallback(() => {
-    if (deviceSyncEnabled) {
-      triggerAutoSync({ sales, stock, debts, expenses, businessName: user?.businessName });
-    }
-  }, [sales, stock, debts, expenses, deviceSyncEnabled, user?.businessName]);
+  // Load manager PIN on mount
+  useEffect(() => {
+    const loadPin = async () => {
+      const pin = await fetchManagerPin();
+      setManagerPassword(pin);
+    };
+    loadPin();
+  }, []);
 
   useEffect(() => {
     const alarmInterval = setInterval(() => {
@@ -151,9 +156,6 @@ function App() {
         showNotification("Failed to load data.", "error");
       } finally {
         setLoading(false);
-        if (!isDeviceSyncEnabled()) {
-          setShowStoragePrompt(true);
-        }
       }
     };
     loadData();
@@ -163,19 +165,19 @@ function App() {
 
   const filteredSales = useMemo(() => 
     sales.filter(s => s.itemName.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), 
-  [sales, searchQuery]);
-  
+    [sales, searchQuery]);
+    
   const filteredStock = useMemo(() => 
     stock.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.lastUpdated - a.lastUpdated), 
-  [stock, searchQuery]);
-  
+    [stock, searchQuery]);
+    
   const filteredDebts = useMemo(() => 
     debts.filter(d => d.debtorName.toLowerCase().includes(searchQuery.toLowerCase()) || d.phoneNumber.includes(searchQuery)).sort((a, b) => b.date - a.date), 
-  [debts, searchQuery]);
-  
+    [debts, searchQuery]);
+    
   const filteredExpenses = useMemo(() => 
     expenses.filter(e => e.category.toLowerCase().includes(searchQuery.toLowerCase())).sort((a, b) => b.date - a.date), 
-  [expenses, searchQuery]);
+    [expenses, searchQuery]);
 
   const searchResults: SearchResult[] = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -276,84 +278,72 @@ function App() {
     } else {
       showNotification("Sale recorded!");
     }
-    triggerSync();
   };
 
   const handleDeleteSale = (id: string) => verifyAction(async () => {
     await db.deleteSale(id);
     setSales(prev => prev.filter(s => s.id !== id));
     showNotification("Sale record deleted.");
-    triggerSync();
   });
 
   const handleAddStock = async (item: StockItem) => {
     await db.saveStock(item);
     setStock(prev => [item, ...prev]);
     showNotification("Stock added.");
-    triggerSync();
   };
 
   const handleUpdateStock = async (item: StockItem) => {
     await db.updateStockItem(item);
     setStock(prev => prev.map(s => s.id === item.id ? item : s));
     showNotification("Stock item updated.");
-    triggerSync();
   };
 
   const handleDeleteStock = (id: string) => verifyAction(async () => {
     await db.deleteStock(id);
     setStock(prev => prev.filter(s => s.id !== id));
     showNotification("Stock record deleted.");
-    triggerSync();
   });
 
   const handleAddDebt = async (d: Debt) => {
     await db.saveDebt(d);
     setDebts(prev => [d, ...prev]);
     showNotification("Debt recorded.");
-    triggerSync();
   };
 
   const handleUpdateDebt = async (debt: Debt) => {
     await db.updateDebtItem(debt);
     setDebts(prev => prev.map(d => d.id === debt.id ? debt : d));
     showNotification("Debt updated.");
-    triggerSync();
   };
 
   const handleToggleDebt = async (id: string) => {
     await db.toggleDebtStatus(id);
     setDebts(prev => prev.map(d => d.id === id ? {...d, isPaid: !d.isPaid} : d));
     showNotification("Debt status changed.");
-    triggerSync();
   };
 
   const handleDeleteDebt = (id: string) => verifyAction(async () => {
     await db.deleteDebt(id);
     setDebts(prev => prev.filter(d => d.id !== id));
     showNotification("Debt record deleted.");
-    triggerSync();
   });
 
   const handleAddExpense = async (e: Expense) => {
     await db.saveExpense(e);
     setExpenses(prev => [e, ...prev]);
     showNotification("Expense logged.");
-    triggerSync();
   };
 
   const handleUpdateExpense = async (expense: Expense) => {
     await db.updateExpenseItem(expense);
     setExpenses(prev => prev.map(e => e.id === expense.id ? expense : e));
     showNotification("Expense updated.");
-    triggerSync();
   };
 
   const handleDeleteExpense = (id: string) => verifyAction(async () => {
     await db.deleteExpense(id);
     setExpenses(prev => prev.filter(e => e.id !== id));
     showNotification("Expense record deleted.");
-    triggerSync();
   });
 
   const handleAddCategory = (category: string) => {
@@ -375,10 +365,10 @@ function App() {
     showNotification(`Category "${category}" deleted.`);
   };
 
-  const handleChangePassword = (newPass: string) => {
+  const handleChangePassword = async (newPass: string) => {
     setManagerPassword(newPass);
-    db.saveSettings(user?.id, { managerPassword: newPass });
-    showNotification("Password changed.");
+    await saveManagerPin(newPass, user?.id);
+    showNotification("Security PIN changed successfully.");
   };
 
   const handleCurrencyChange = (newCurrency: string) => {
@@ -410,10 +400,11 @@ function App() {
 
   return (
     <>
-      {showStoragePrompt && (
-        <StoragePermission 
-          onPermissionGranted={handleStorageGranted}
-          onPermissionDenied={handleStorageDenied}
+      {notification && (
+        <Notification 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification(null)} 
         />
       )}
       

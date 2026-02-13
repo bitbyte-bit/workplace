@@ -90,7 +90,7 @@ const Dashboard: React.FC<Props> = ({
 
   const handlePassVerify = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passInput === (currentPassword || '1234')) {
+    if (passInput === currentPassword) {
       if (pendingAction) {
         executeAction(pendingAction.type, pendingAction.value);
       }
@@ -155,7 +155,7 @@ const Dashboard: React.FC<Props> = ({
             setPendingAction(null);
           }}
           onConfirm={(password: string) => {
-            if (password === (currentPassword || '1234')) {
+            if (password === currentPassword) {
               if (pendingAction) {
                 executeAction(pendingAction.type, pendingAction.value);
               }
