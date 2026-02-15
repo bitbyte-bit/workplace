@@ -17,57 +17,8 @@ app.use(express.json());
 
 // Database setup
 const dbPath = path.join(__dirname, 'database.sqlite');
-const recordsFolder = path.join(__dirname, 'zion records');
-
-// Ensure zion records folder exists
-if (!fs.existsSync(recordsFolder)) {
-  fs.mkdirSync(recordsFolder, { recursive: true });
-}
 
 let db = null;
-
-// File sync functions
-function syncToDevice() {
-  try {
-    const sales = db.exec('SELECT * FROM sales')[0]?.values || [];
-    const stock = db.exec('SELECT * FROM stock')[0]?.values || [];
-    const debts = db.exec('SELECT * FROM debts')[0]?.values || [];
-    const expenses = db.exec('SELECT * FROM expenses')[0]?.values || [];
-
-    const salesCols = db.exec('PRAGMA table_info(sales)')[0]?.columns || [];
-    const stockCols = db.exec('PRAGMA table_info(stock)')[0]?.columns || [];
-    const debtsCols = db.exec('PRAGMA table_info(debts)')[0]?.columns || [];
-    const expensesCols = db.exec('PRAGMA table_info(expenses)')[0]?.columns || [];
-
-    const rowsToObjects = (rows, cols) => rows.map(row => {
-      const obj = {};
-      cols.forEach((col, i) => obj[col] = row[i]);
-      return obj;
-    });
-
-    const data = {
-      sales: rowsToObjects(sales, salesCols),
-      stock: rowsToObjects(stock, stockCols),
-      debts: rowsToObjects(debts, debtsCols),
-      expenses: rowsToObjects(expenses, expensesCols),
-      savedAt: new Date().toISOString(),
-    };
-
-    const backupPath = path.join(recordsFolder, 'zion_backup.json');
-    fs.writeFileSync(backupPath, JSON.stringify(data, null, 2));
-
-    fs.writeFileSync(path.join(recordsFolder, 'sales.json'), JSON.stringify(data.sales, null, 2));
-    fs.writeFileSync(path.join(recordsFolder, 'stock.json'), JSON.stringify(data.stock, null, 2));
-    fs.writeFileSync(path.join(recordsFolder, 'debts.json'), JSON.stringify(data.debts, null, 2));
-    fs.writeFileSync(path.join(recordsFolder, 'expenses.json'), JSON.stringify(data.expenses, null, 2));
-
-    console.log('✅ Data synced to zion records folder');
-    return true;
-  } catch (error) {
-    console.error('❌ Sync failed:', error);
-    return false;
-  }
-}
 
 async function initDatabase() {
   const SQL = await initSqlJs();
@@ -158,7 +109,6 @@ async function initDatabase() {
   }
   
   saveDatabase();
-  syncToDevice();
   console.log('✅ Connected to SQLite database');
 }
 
@@ -168,12 +118,10 @@ function saveDatabase() {
   fs.writeFileSync(dbPath, buffer);
 }
 
-let saveTimeout = null;
 function triggerSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
     saveDatabase();
-    syncToDevice();
   }, 2000);
 }
 
@@ -835,13 +783,6 @@ app.get('/api/summary', (req, res) => {
   }
 });
 
-// Manual sync endpoint
-app.post('/api/sync', (req, res) => {
-  saveDatabase();
-  const success = syncToDevice();
-  res.json({ success });
-});
-
 // Export/Import endpoints
 app.get('/api/export', (req, res) => {
   try {
@@ -1116,6 +1057,6 @@ app.get('*', (req, res) => {
 initDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📁 Data synced to: ${recordsFolder}`);
+    console.log(`💾 Data stored in SQLite database`);
   });
 });

@@ -16,7 +16,7 @@ function triggerAutoSave() {
       pendingChanges = false;
       try {
         await syncToDevice();
-        console.log('Auto-synced to server and device');
+        console.log('Auto-saved to database');
       } catch (error) {
         console.error('Auto-save failed:', error);
       }
@@ -67,7 +67,7 @@ async function apiDelete(endpoint: string): Promise<{ success: boolean }> {
   return response.json();
 }
 
-// Sync with server (saves SQLite to device files)
+// Sync with server (saves to SQLite database)
 export async function syncToDevice(): Promise<void> {
   await apiPost('/sync', {});
 }
@@ -533,7 +533,7 @@ export async function importData(file: File): Promise<void> {
   triggerAutoSave();
 }
 
-// Force immediate sync
+// Force immediate sync to database
 export function forceSync(): void {
   pendingChanges = true;
   triggerAutoSave();
