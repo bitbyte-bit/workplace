@@ -118,6 +118,7 @@ function saveDatabase() {
   fs.writeFileSync(dbPath, buffer);
 }
 
+let saveTimeout = null;
 function triggerSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
