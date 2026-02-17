@@ -87,6 +87,8 @@ function App() {
         if (settings.managerPassword) setManagerPassword(settings.managerPassword);
         if (settings.currency) setCurrency(settings.currency);
         if (settings.reminderTime) setReminderTime(settings.reminderTime);
+        if (settings.securityQuestion) setSecurityQuestion(settings.securityQuestion);
+        if (settings.securityAnswer) setSecurityAnswer(settings.securityAnswer);
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
@@ -373,6 +375,13 @@ function App() {
     showNotification("Security PIN changed successfully.");
   };
 
+  const handleSetSecurityQuestion = async (question: string, answer: string) => {
+    setSecurityQuestion(question);
+    setSecurityAnswer(answer);
+    await saveSecurityQuestion(question, answer, user?.id);
+    showNotification("Security question set successfully.");
+  };
+
   const handleCurrencyChange = (newCurrency: string) => {
     setCurrency(newCurrency);
     db.saveSettings(user?.id, { currency: newCurrency });
@@ -492,6 +501,9 @@ function App() {
                   onCurrencyChange={handleCurrencyChange}
                   reminderTime={reminderTime}
                   onReminderChange={handleReminderChange}
+                  securityQuestion={securityQuestion}
+                  securityAnswer={securityAnswer}
+                  onSetSecurityQuestion={handleSetSecurityQuestion}
                 />
               )}
               

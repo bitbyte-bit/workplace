@@ -15,6 +15,9 @@ interface Props {
   reminderTime?: string;
   onReminderChange?: (time: string) => void;
   onNavigate?: (tab: string) => void;
+  securityQuestion?: string;
+  securityAnswer?: string;
+  onSetSecurityQuestion?: (question: string, answer: string) => void;
 }
 
 const EXCHANGE_RATES: Record<string, number> = {
@@ -28,7 +31,7 @@ const EXCHANGE_RATES: Record<string, number> = {
 };
 
 const Dashboard: React.FC<Props> = ({ 
-  data, currentPassword, onChangePassword, currency, onCurrencyChange, reminderTime, onReminderChange 
+  data, currentPassword, onChangePassword, currency, onCurrencyChange, reminderTime, onReminderChange, securityQuestion, securityAnswer, onSetSecurityQuestion 
 }) => {
   const { colors } = useTheme();
   const [insights] = useState<string[]>([
@@ -171,6 +174,9 @@ const Dashboard: React.FC<Props> = ({
           title="Manager Verification"
           message="Enter your PIN to perform sensitive actions"
           confirmText="Verify"
+          securityQuestion={securityQuestion}
+          onSetSecurityQuestion={onSetSecurityQuestion}
+          onVerifySecurityAnswer={(answer: string) => answer === securityAnswer}
         />
       )}
 
