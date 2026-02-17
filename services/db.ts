@@ -459,6 +459,33 @@ export async function hasManagerPin(): Promise<boolean> {
   }
 }
 
+// ========== SECURITY QUESTION FUNCTIONS ==========
+
+export interface SecurityQuestion {
+  question: string;
+  answer: string;
+}
+
+export async function fetchSecurityQuestion(): Promise<SecurityQuestion | null> {
+  try {
+    const settings = await fetchSettings(undefined);
+    if (settings.securityQuestion && settings.securityAnswer) {
+      return {
+        question: settings.securityQuestion as string,
+        answer: settings.securityAnswer as string
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveSecurityQuestion(question: string, answer: string, userId?: string): Promise<void> {
+  await saveSetting(userId, 'securityQuestion', question);
+  await saveSetting(userId, 'securityAnswer', answer);
+}
+
 // ========== WHATSAPP FUNCTIONS ==========
 
 export interface WhatsAppConfig {
