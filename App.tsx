@@ -14,7 +14,7 @@ import Auth from './components/Auth';
 import AdminDashboard from './components/AdminDashboard';
 import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
-import { User, hasManagerPin, fetchManagerPin, saveManagerPin, fetchSecurityQuestion, saveSecurityQuestion } from './services/db';
+import { User, fetchManagerPin, saveManagerPin, fetchSecurityQuestion, saveSecurityQuestion } from './services/db';
 import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon, ShieldIcon } from './components/Icons';
 import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
 
@@ -63,28 +63,20 @@ function App() {
     }
   }, [managerPassword, showNotification]);
 
-  // Check for PIN availability on app load
-  useEffect(() => {
-    const checkPinAvailability = async () => {
-      try {
-        const pinExists = await hasManagerPin();
-        if (!pinExists) {
-          // PIN not set - admin should set it
-          console.log('PIN not set. Admin should configure it.');
-        }
-      } catch (error) {
-        console.error('Failed to check PIN availability:', error);
-      }
-    };
-    checkPinAvailability();
-  }, []);
-
   useEffect(() => {
     const loadSettings = async () => {
       try {
         const settings = await db.fetchSettings(user?.id);
         if (settings.customCategories) setCustomCategories(settings.customCategories);
-        if (settings.managerPassword) setManagerPassword(settings.managerPassword);
+        
+        // Load Manager PIN and set default if not exists
+        let pin = settings.managerPassword as string;
+        if (!pin) {
+          pin = '0000';
+          await saveManagerPin(pin, user?.id);
+        }
+        setManagerPassword(pin);
+        
         if (settings.currency) setCurrency(settings.currency);
         if (settings.reminderTime) setReminderTime(settings.reminderTime);
         if (settings.securityQuestion) setSecurityQuestion(settings.securityQuestion);
@@ -124,7 +116,7 @@ function App() {
 
   // Load manager PIN on mount
   useEffect(() => {
-    const loadPin = async () => {
+    const loadGlobalPin = async () => {
       let pin = await fetchManagerPin();
       // Set default PIN to "0000" if not already set
       if (!pin) {
@@ -133,7 +125,8 @@ function App() {
       }
       setManagerPassword(pin);
     };
-    loadPin();
+    // Load global PIN for non-authenticated access (if needed)
+    loadGlobalPin();
   }, []);
 
   useEffect(() => {
