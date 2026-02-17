@@ -125,7 +125,12 @@ function App() {
   // Load manager PIN on mount
   useEffect(() => {
     const loadPin = async () => {
-      const pin = await fetchManagerPin();
+      let pin = await fetchManagerPin();
+      // Set default PIN to "0000" if not already set
+      if (!pin) {
+        pin = '0000';
+        await saveManagerPin(pin);
+      }
       setManagerPassword(pin);
     };
     loadPin();
