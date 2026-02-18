@@ -14,7 +14,7 @@ import Auth from './components/Auth';
 import AdminDashboard from './components/AdminDashboard';
 import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
-import { User, fetchManagerPin, saveManagerPin, fetchSecurityQuestion, saveSecurityQuestion } from './services/db';
+import { User, fetchManagerPin, saveManagerPin, saveSecurityQuestion } from './services/db';
 import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon, ShieldIcon } from './components/Icons';
 import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
 
@@ -418,14 +418,6 @@ function App() {
       )}
       
       <div className="flex flex-col min-h-screen bg-[var(--color-background)] pb-32 md:pb-16 md:pl-64 transition-colors duration-500">
-        {notification && (
-          <Notification 
-            message={notification.message} 
-            type={notification.type} 
-            onClose={() => setNotification(null)} 
-          />
-        )}
-        
         <aside className="hidden md:flex flex-col w-64 bg-white border-r h-full fixed left-0 top-0 p-6 shadow-xl">
           <h1 className="text-3xl font-black text-blue-600 mb-10 tracking-tighter flex items-center gap-2">
             ZION <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full uppercase">Pro</span>

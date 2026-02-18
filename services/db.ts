@@ -207,6 +207,10 @@ export interface AdminStats {
   warnedUsers: number;
   totalSales: number;
   totalRevenue: number;
+  totalExpenses?: number;
+  totalDebts?: number;
+  totalStockItems?: number;
+  lowStockItems?: number;
 }
 
 export async function checkUserExists(): Promise<boolean> {

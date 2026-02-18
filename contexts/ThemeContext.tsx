@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Theme, fetchTheme, saveTheme } from '../services/db';
 
+export type { Theme };
+
 interface ThemeColors {
   primary: string;
   primaryHover: string;

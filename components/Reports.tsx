@@ -3,7 +3,7 @@ import React from 'react';
 import { BusinessData, Sale, Expense, StockItem, Debt } from '../types';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import { ReportsIcon, SalesIcon, ExpenseIcon, CheckCircleIcon, StockIcon, DebtIcon } from './Icons';
+import { ReportsIcon, SalesIcon, ExpenseIcon, CheckCircleIcon } from './Icons';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement
 } from 'chart.js';

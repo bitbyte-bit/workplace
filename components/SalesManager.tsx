@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Sale, StockItem } from '../types';
-import { TrashIcon, SalesIcon, AlertCircleIcon } from './Icons';
+import { TrashIcon, SalesIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 import CategoryModal from './CategoryModal';
 

@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { FolderIcon, FileIcon, DownloadIcon, UploadIcon, TrashIcon, RefreshIcon } from './Icons';
 import { exportAllData, importData, forceSync } from '../services/db';
 import { useTheme } from '../contexts/ThemeContext';
-import { Sale, StockItem, Debt, Expense } from '../types';
-import { BusinessData } from '../types';
+import { Sale, StockItem, Debt, Expense, BusinessData } from '../types';
 
 interface RecordsManagerProps {
   onClose: () => void;

@@ -864,7 +864,6 @@ app.post('/api/import', (req, res) => {
     }
 
     saveDatabase();
-    syncToDevice();
     res.json({ success: true, message: 'Data imported successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
