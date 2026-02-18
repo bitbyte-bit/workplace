@@ -15,6 +15,7 @@ interface Props {
   onAddSale: (sale: Sale) => void;
   onDeleteSale: (id: string) => void;
   currency: string;
+  managerPassword?: string;
 }
 
 const PREDEFINED_CATEGORIES = [
@@ -27,7 +28,7 @@ const PREDEFINED_CATEGORIES = [
   "Components & Parts"
 ];
 
-const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddSale, onDeleteSale, currency }) => {
+const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddSale, onDeleteSale, currency, managerPassword = '' }) => {
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('Smartphones');
   const [quantity, setQuantity] = useState(1);

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Debt } from '../types';
-import { TrashIcon, DebtIcon, ClockIcon, PhoneIcon, MessageIcon, WhatsAppIcon, SendIcon } from './Icons';
+import { TrashIcon, DebtIcon, ClockIcon, PhoneIcon, MessageIcon, SendIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 
 interface Props {
@@ -108,12 +108,6 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
     window.open(`sms:${phone}`, '_self');
   };
 
-  const handleWhatsApp = (phone: string) => {
-    // Remove any non-digit characters for WhatsApp
-    const cleanPhone = phone.replace(/\D/g, '');
-    window.open(`https://wa.me/${cleanPhone}`, '_blank');
-  };
-
   return (
     <div className="space-y-6">
       <PasswordModal
@@ -203,8 +197,8 @@ const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggle
                           <button onClick={() => handleSMS(debt.phoneNumber)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all" title="SMS">
                             <MessageIcon className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleWhatsApp(debt.phoneNumber)} className="p-2 bg-[#25D366] text-white rounded-xl hover:bg-[#20bd5c] opacity-0 group-hover:opacity-100 transition-all" title="WhatsApp Web">
-                            <WhatsAppIcon className="w-4 h-4" />
+                          <button onClick={() => handleSMS(debt.phoneNumber)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white opacity-0 group-hover:opacity-100 transition-all" title="SMS">
+                            <MessageIcon className="w-4 h-4" />
                           </button>
                           {!debt.isPaid && (
                             <button 

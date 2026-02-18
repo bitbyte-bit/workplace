@@ -508,6 +508,7 @@ function App() {
                   onAddCategory={handleAddCategory}
                   onUpdateCategory={handleUpdateCategory}
                   onDeleteCategory={handleDeleteCategory}
+                  managerPassword={managerPassword}
                 />
               )}
               
@@ -522,6 +523,7 @@ function App() {
                   onAddCategory={handleAddCategory}
                   onUpdateCategory={handleUpdateCategory}
                   onDeleteCategory={handleDeleteCategory}
+                  managerPassword={managerPassword}
                 />
               )}
               
@@ -533,6 +535,7 @@ function App() {
                   onToggleDebt={handleToggleDebt}
                   onDeleteDebt={handleDeleteDebt}
                   currency={currency}
+                  managerPassword={managerPassword}
                 />
               )}
               
