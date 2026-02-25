@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { Sale, StockItem } from '../types';
+import { Sale, StockItem, Receipt } from '../types';
 import { TrashIcon, SalesIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 import CategoryModal from './CategoryModal';
+import ReceiptModal from './ReceiptModal';
 
 interface Props {
   sales: Sale[];
@@ -14,6 +15,7 @@ interface Props {
   onDeleteCategory: (category: string) => void;
   onAddSale: (sale: Sale) => void;
   onDeleteSale: (id: string) => void;
+  onSaveReceipt: (receipt: Receipt) => void;
   currency: string;
   managerPassword?: string;
 }
@@ -28,13 +30,17 @@ const PREDEFINED_CATEGORIES = [
   "Components & Parts"
 ];
 
-const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddSale, onDeleteSale, currency, managerPassword = '' }) => {
+const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddSale, onDeleteSale, onSaveReceipt, currency, managerPassword = '' }) => {
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('Smartphones');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(0);
   const [newCatName, setNewCatName] = useState('');
   const [showAddCat, setShowAddCat] = useState(false);
+
+  // Receipt modal state
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [lastCreatedSale, setLastCreatedSale] = useState<Sale | null>(null);
 
   // Credit sale state
   const [isOnCredit, setIsOnCredit] = useState(false);
@@ -88,6 +94,10 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
     setCustomerName('');
     setCustomerPhone('');
     setPaidAmount(0);
+    
+    // Show receipt modal after successful sale
+    setLastCreatedSale(newSale);
+    setReceiptModalOpen(true);
   };
 
   const openCategoryEdit = (cat: string) => {
@@ -150,6 +160,23 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
         existingCategories={allCategories}
         initialCategory={editingCategory || undefined}
         mode={editingCategory ? 'edit' : 'add'}
+      />
+
+      <ReceiptModal
+        isOpen={receiptModalOpen}
+        onClose={() => {
+          setReceiptModalOpen(false);
+          setLastCreatedSale(null);
+        }}
+        sale={lastCreatedSale!}
+        currency={currency}
+        onSaveReceipt={onSaveReceipt}
+        onDownloadPDF={(receipt) => {
+          // Import the PDF generation function dynamically
+          import('../utils/receiptUtils').then(({ downloadReceiptPDF }) => {
+            downloadReceiptPDF(receipt, currency);
+          });
+        }}
       />
 
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 space-y-6">

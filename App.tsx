@@ -12,11 +12,12 @@ import ThemeSwitcher from './components/ThemeSwitcher';
 import RecordsManager from './components/RecordsManager';
 import Auth from './components/Auth';
 import AdminDashboard from './components/AdminDashboard';
+import ReceiptsManager from './components/ReceiptsManager';
 import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
 import { User, fetchManagerPin, saveManagerPin, saveSecurityQuestion } from './services/db';
-import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon, ShieldIcon } from './components/Icons';
-import { Tab, Sale, StockItem, Debt, Expense, BusinessData } from './types';
+import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon, ShieldIcon, ReceiptIcon } from './components/Icons';
+import { Tab, Sale, StockItem, Debt, Expense, BusinessData, Receipt } from './types';
 
 interface SearchResult {
   id: string;
@@ -39,6 +40,7 @@ function App() {
   const [stock, setStock] = useState<StockItem[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   const [notification, setNotification] = useState<{ message: string, type: NotificationType } | null>(null);
@@ -429,6 +431,7 @@ function App() {
             <NavButton active={activeTab === 'debts'} onClick={() => setActiveTab('debts')} icon={<DebtIcon />} label="Debts" />
             <NavButton active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} icon={<ExpenseIcon />} label="Expenses" />
             <NavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<ReportsIcon />} label="Reports" />
+            <NavButton active={activeTab === 'receipts'} onClick={() => setActiveTab('receipts')} icon={<ReceiptIcon />} label="Receipts" />
             <NavButton active={false} onClick={() => setShowRecordsManager(true)} icon={<FolderIcon />} label="Records" />
             {user?.role === 'admin' && (
               <NavButton 
@@ -479,6 +482,7 @@ function App() {
               adminId={adminId || ''}
               onLogout={handleAdminLogout}
               currency={currency}
+              receipts={receipts}
             />
           ) : (
             <>
@@ -504,6 +508,7 @@ function App() {
                   customCategories={customCategories}
                   onAddSale={handleSale}
                   onDeleteSale={handleDeleteSale}
+                  onSaveReceipt={(receipt) => setReceipts(prev => [...prev, receipt])}
                   currency={currency}
                   onAddCategory={handleAddCategory}
                   onUpdateCategory={handleUpdateCategory}
@@ -558,6 +563,19 @@ function App() {
                 <Reports 
                   data={businessData}
                   currency={currency}
+                />
+              )}
+
+              {activeTab === 'receipts' && (
+                <ReceiptsManager
+                  receipts={receipts}
+                  currency={currency}
+                  onDeleteReceipt={(id) => setReceipts(prev => prev.filter(r => r.id !== id))}
+                  onDownloadPDF={(receipt) => {
+                    import('./utils/receiptUtils').then(({ downloadReceiptPDF }) => {
+                      downloadReceiptPDF(receipt, currency);
+                    });
+                  }}
                 />
               )}
             </>

@@ -2,16 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   ShieldIcon, UsersIcon, AlertTriangleIcon, BanIcon, Trash2Icon, 
   CheckCircleIcon, XCircleIcon, SearchIcon, RefreshIcon, LogOutIcon, 
-  SalesIcon, StockIcon, DebtIcon, ExpenseIcon
+  SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReceiptIcon
 } from './Icons';
 import { 
   getAllUsers, getAdminStats, warnUser, suspendUser, unsuspendUser, banUser, deleteUser, User, AdminStats 
 } from '../services/db';
+import ReceiptsManager from './ReceiptsManager';
 
 interface AdminDashboardProps {
   adminId: string;
   onLogout: () => void;
   currency: string;
+  receipts?: { id: string; saleId: string; itemName: string; category: string; quantity: number; price: number; totalAmount: number; customerPhone?: string; customerName?: string; date: number; sentVia?: string }[];
 }
 
 interface MonthlyData {
@@ -35,7 +37,7 @@ export default function AdminDashboard({ adminId, onLogout, currency }: AdminDas
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [reason, setReason] = useState('');
-  const [activeSection, setActiveSection] = useState<'overview' | 'users'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'users' | 'receipts'>('overview');
 
   const loadData = useCallback(async () => {
     try {
@@ -134,6 +136,12 @@ export default function AdminDashboard({ adminId, onLogout, currency }: AdminDas
             className={`btn ${activeSection === 'users' ? 'btn-primary' : 'btn-secondary'}`}
           >
             User Management
+          </button>
+          <button 
+            onClick={() => setActiveSection('receipts')}
+            className={`btn ${activeSection === 'receipts' ? 'btn-primary' : 'btn-secondary'}`}
+          >
+            Receipts
           </button>
         </div>
         <button onClick={onLogout} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -528,6 +536,22 @@ export default function AdminDashboard({ adminId, onLogout, currency }: AdminDas
             </table>
           </div>
         </>
+      )}
+
+      {activeSection === 'receipts' && receipts && (
+        <ReceiptsManager
+          receipts={receipts}
+          currency={currency}
+          onDeleteReceipt={(id) => {
+            // This would need to be handled via props if needed
+            console.log('Delete receipt:', id);
+          }}
+          onDownloadPDF={(receipt) => {
+            import('../utils/receiptUtils').then(({ downloadReceiptPDF }) => {
+              downloadReceiptPDF(receipt, currency);
+            });
+          }}
+        />
       )}
 
       {/* Warning Modal */}

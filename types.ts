@@ -53,7 +53,21 @@ export interface Expense {
   frequency: ExpenseFrequency;
 }
 
-export type Tab = 'dashboard' | 'sales' | 'stock' | 'debts' | 'expenses' | 'reports';
+export type Tab = 'dashboard' | 'sales' | 'stock' | 'debts' | 'expenses' | 'reports' | 'receipts';
+
+export interface Receipt {
+  id: string;
+  saleId: string;
+  itemName: string;
+  category: string;
+  quantity: number;
+  price: number;
+  totalAmount: number;
+  customerPhone?: string;
+  customerName?: string;
+  date: number;
+  sentVia?: string;
+}
 
 export interface BusinessData {
   sales: Sale[];
