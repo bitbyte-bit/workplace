@@ -213,6 +213,10 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
               {/* Receipt Details */}
               <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+                  <span className="text-slate-500 text-sm">Date</span>
+                  <span className="font-bold text-slate-800">{new Date(sale.date).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between items-center pb-3 border-b border-slate-200">
                   <span className="text-slate-500 text-sm">Item</span>
                   <span className="font-bold text-slate-800">{sale.itemName}</span>
                 </div>
@@ -233,6 +237,25 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   <span className="font-black text-xl text-blue-600">{currency}{totalAmount.toLocaleString()}</span>
                 </div>
               </div>
+
+              {/* Customer Info - Show if available from sale */}
+              {(sale.customerName || sale.customerPhone) && (
+                <div className="bg-green-50 rounded-2xl p-4 space-y-2 border border-green-100">
+                  <h4 className="text-xs font-black text-green-700 uppercase tracking-widest">Customer Information</h4>
+                  {sale.customerName && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-600 text-sm">Name</span>
+                      <span className="font-bold text-green-800">{sale.customerName}</span>
+                    </div>
+                  )}
+                  {sale.customerPhone && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-600 text-sm">Phone</span>
+                      <span className="font-bold text-green-800">{sale.customerPhone}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="space-y-3">

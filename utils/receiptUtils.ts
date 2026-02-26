@@ -51,10 +51,14 @@ const getCurrentLocationAddress = async (): Promise<string> => {
 };
 
 // Generate HTML receipt for print dialog
-export const generateReceiptPDF = async (receipt: Receipt, currency: string, businessName: string = 'ORIONHUB (zionnent)', businessPhone: string = ''): Promise<void> => {
+export const generateReceiptPdf = async (receipt: Receipt, currency: string, businessName: string = 'ORIONHUB (zionnent)', businessPhone: string = ''): Promise<void> => {
   // Get current location address
   const locationAddress = await getCurrentLocationAddress();
   const totalAmount = receipt.totalAmount;
+  
+  // Business information
+  const businessEmail = 'contact@orionhub.com';
+  const businessLocation = locationAddress || '123 Business Street, City';
   
   const receiptContent = `
 <!DOCTYPE html>
@@ -64,8 +68,16 @@ export const generateReceiptPDF = async (receipt: Receipt, currency: string, bus
   <title>Receipt #${receipt.id}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f1f5f9; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
+    html, body { height: 100%; margin: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      padding: 20px; 
+      background: #f1f5f9; 
+      min-height: 100vh; 
+      display: flex; 
+      justify-content: center; 
+      align-items: flex-start; 
+    }
     .receipt-container { 
       border: 2px solid #1e40af; 
       border-radius: 20px; 
@@ -75,7 +87,8 @@ export const generateReceiptPDF = async (receipt: Receipt, currency: string, bus
       background: white;
       display: flex;
       flex-direction: column;
-      min-height: 700px;
+      min-height: 100%;
+      height: 100%;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
     .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; flex-shrink: 0; }
@@ -98,13 +111,24 @@ export const generateReceiptPDF = async (receipt: Receipt, currency: string, bus
     .customer-label { color: #15803d; }
     .customer-value { font-weight: 600; color: #166534; }
     .no-customer { color: #94a3b8; font-size: 13px; font-style: italic; }
-    .footer { background: #1e40af; color: white; padding: 25px; text-align: center; margin-top: auto; flex-shrink: 0; }
-    .footer-address { margin-bottom: 10px; font-size: 12px; }
-    .footer-address p { margin: 3px 0; }
-    .footer h2 { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
-    .footer p.thanks { font-size: 12px; opacity: 0.8; }
+    .footer { 
+      background: #1e40af; 
+      color: white; 
+      padding: 25px 20px; 
+      text-align: center; 
+      flex-shrink: 0; 
+      margin-top: auto;
+    }
+    .footer-address { margin-bottom: 8px; font-size: 11px; line-height: 1.4; }
+    .footer-address p { margin: 2px 0; }
+    .footer h2 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .footer p.thanks { font-size: 10px; opacity: 0.8; }
     .print-btn { position: fixed; top: 20px; right: 20px; padding: 12px 24px; background: #1e40af; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; z-index: 1000; }
-    @media print { .print-btn { display: none; } body { padding: 0; background: white; } .receipt-container { box-shadow: none; max-width: 100%; } }
+    @media print { 
+      .print-btn { display: none; } 
+      body { padding: 0; background: white; } 
+      .receipt-container { box-shadow: none; max-width: 100%; height: 100vh; } 
+    }
   </style>
 </head>
 <body>
@@ -159,7 +183,7 @@ export const generateReceiptPDF = async (receipt: Receipt, currency: string, bus
           <span class="customer-value">${receipt.customerPhone}</span>
         </div>
       ` : ''}
-      ${!receipt.customerName && !receipt.customerPhone ? `
+      ${(!receipt.customerName && !receipt.customerPhone) ? `
         <div class="no-customer">No customer information provided</div>
       ` : ''}
       ${receipt.sentVia ? `
@@ -170,7 +194,11 @@ export const generateReceiptPDF = async (receipt: Receipt, currency: string, bus
       ` : ''}
     </div>
     <div class="footer">
-      ${locationAddress || businessPhone ? `<div class="footer-address">${locationAddress ? `<p>${locationAddress}</p>` : ''}${businessPhone ? `<p>Phone: ${businessPhone}</p>` : ''}</div>` : ''}
+      <div class="footer-address">
+        ${businessLocation ? `<p>${businessLocation}</p>` : ''}
+        ${businessPhone ? `<p>Phone: ${businessPhone}</p>` : ''}
+        ${businessEmail ? `<p>Email: ${businessEmail}</p>` : ''}
+      </div>
       <h2>Thank You for Your Purchase!</h2>
       <p class="thanks">Please keep this receipt for your records.</p>
     </div>
@@ -192,33 +220,37 @@ export const downloadReceiptPDF = async (receipt: Receipt, currency: string, bus
   const locationAddress = await getCurrentLocationAddress();
   const totalAmount = receipt.totalAmount;
   
+  // Business information
+  const businessEmail = 'contact@orionhub.com';
+  const businessLocation = locationAddress || '123 Business Street, City';
+  
   // Create PDF document
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Header - Blue gradient background (simulated with filled rectangles)
   doc.setFillColor(30, 64, 175); // Blue-700
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text(businessName, pageWidth / 2, 20, { align: 'center' });
+  doc.text(businessName, pageWidth / 2, 18, { align: 'center' });
   
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Sales Receipt', pageWidth / 2, 30, { align: 'center' });
+  doc.text('Sales Receipt', pageWidth / 2, 26, { align: 'center' });
   
   // Receipt ID box
   doc.setFillColor(241, 245, 249); // Slate-100
-  doc.roundedRect(15, 48, pageWidth - 30, 15, 3, 3, 'F');
+  doc.roundedRect(15, 42, pageWidth - 30, 12, 2, 2, 'F');
   doc.setTextColor(30, 64, 175); // Blue-700
-  doc.setFontSize(14);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text(`#${receipt.id}`, pageWidth / 2, 58, { align: 'center' });
+  doc.text(`#${receipt.id}`, pageWidth / 2, 50, { align: 'center' });
   
-  // Details section
-  let yPos = 75;
+  // Details section - reduced line height
+  let yPos = 60;
   doc.setTextColor(100, 116, 139); // Slate-500
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
@@ -238,83 +270,89 @@ export const downloadReceiptPDF = async (receipt: Receipt, currency: string, bus
     doc.setFont('helvetica', 'bold');
     doc.text(value, pageWidth - 20, yPos, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    yPos += 10;
+    yPos += 7;
   });
   
   // Total section
-  yPos += 5;
+  yPos += 3;
   doc.setDrawColor(30, 64, 175);
-  doc.setLineWidth(0.5);
+  doc.setLineWidth(0.3);
   doc.line(20, yPos, pageWidth - 20, yPos);
-  yPos += 15;
+  yPos += 8;
   
   doc.setTextColor(71, 85, 105);
-  doc.setFontSize(14);
+  doc.setFontSize(12);
   doc.text('Total Amount', 20, yPos);
   doc.setTextColor(30, 64, 175);
-  doc.setFontSize(28);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.text(`${currency}${totalAmount.toLocaleString()}`, pageWidth - 20, yPos, { align: 'right' });
   
-  // Customer Information
-  if (receipt.customerName || receipt.customerPhone) {
-    yPos += 20;
-    doc.setFillColor(240, 253, 244); // Green-50
-    doc.roundedRect(15, yPos - 5, pageWidth - 30, 25, 3, 3, 'F');
-    
-    doc.setTextColor(22, 101, 52); // Green-800
-    doc.setFontSize(10);
+  // Customer Information - Always show section
+  yPos += 15;
+  doc.setFillColor(240, 253, 244); // Green-50
+  doc.roundedRect(15, yPos - 5, pageWidth - 30, 30, 2, 2, 'F');
+  
+  doc.setTextColor(22, 101, 52); // Green-800
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CUSTOMER INFORMATION', 20, yPos + 3);
+  
+  yPos += 10;
+  doc.setFont('helvetica', 'normal');
+  
+  if (receipt.customerName) {
+    doc.setTextColor(21, 128, 61); // Green-700
+    doc.text('Name', 20, yPos);
+    doc.setTextColor(22, 101, 52);
     doc.setFont('helvetica', 'bold');
-    doc.text('CUSTOMER INFORMATION', 20, yPos + 3);
-    
-    yPos += 10;
+    doc.text(receipt.customerName, pageWidth - 20, yPos, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    
-    if (receipt.customerName) {
-      doc.setTextColor(21, 128, 61); // Green-700
-      doc.text('Name', 20, yPos);
-      doc.setTextColor(22, 101, 52);
-      doc.setFont('helvetica', 'bold');
-      doc.text(receipt.customerName, pageWidth - 20, yPos, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-      yPos += 8;
-    }
-    
-    if (receipt.customerPhone) {
-      doc.setTextColor(21, 128, 61);
-      doc.text('Phone', 20, yPos);
-      doc.setTextColor(22, 101, 52);
-      doc.setFont('helvetica', 'bold');
-      doc.text(receipt.customerPhone, pageWidth - 20, yPos, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-    }
+    yPos += 7;
+  }
+  if (receipt.customerPhone) {
+    doc.setTextColor(21, 128, 61);
+    doc.text('Phone', 20, yPos);
+    doc.setTextColor(22, 101, 52);
+    doc.setFont('helvetica', 'bold');
+    doc.text(receipt.customerPhone, pageWidth - 20, yPos, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+  }
+  if (!receipt.customerName && !receipt.customerPhone) {
+    doc.setTextColor(21, 128, 61);
+    doc.text('No customer information provided', 20, yPos);
   }
   
-  // Footer with address - calculate position based on content
+  // Footer with business info - calculate position based on content
   const footerYPos = yPos + 20;
   doc.setFillColor(30, 64, 175);
-  doc.rect(0, footerYPos, pageWidth, 50, 'F');
+  doc.rect(0, footerYPos, pageWidth, 60, 'F');
   
-  let footerTextY = footerYPos + 15;
+  let footerTextY = footerYPos + 12;
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
   
-  if (locationAddress) {
-    doc.text(locationAddress, pageWidth / 2, footerTextY, { align: 'center' });
-    footerTextY += 7;
+  // Business Information in footer
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  if (businessLocation) {
+    doc.text(businessLocation, pageWidth / 2, footerTextY, { align: 'center' });
+    footerTextY += 5;
   }
-  
   if (businessPhone) {
     doc.text(`Phone: ${businessPhone}`, pageWidth / 2, footerTextY, { align: 'center' });
-    footerTextY += 7;
+    footerTextY += 5;
+  }
+  if (businessEmail) {
+    doc.text(`Email: ${businessEmail}`, pageWidth / 2, footerTextY, { align: 'center' });
+    footerTextY += 8;
   }
   
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Thank You for Your Purchase!', pageWidth / 2, footerTextY + 8, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text('Thank You for Your Purchase!', pageWidth / 2, footerTextY + 5, { align: 'center' });
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
+  doc.setFontSize(8);
   doc.setTextColor(255, 255, 255);
   doc.text('Please keep this receipt for your records.', pageWidth / 2, footerTextY + 15, { align: 'center' });
   

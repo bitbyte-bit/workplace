@@ -83,6 +83,8 @@ async function initDatabase() {
       fullName TEXT,
       businessName TEXT,
       phone TEXT,
+      businessEmail TEXT,
+      businessLocation TEXT,
       role TEXT DEFAULT 'user',
       status TEXT DEFAULT 'active',
       warningCount INTEGER DEFAULT 0,
@@ -124,6 +126,20 @@ async function initDatabase() {
     if (!debtsHasUserId) {
       db.run('ALTER TABLE debts ADD COLUMN userId TEXT');
       console.log('✅ Migrated debts table: added userId column');
+    }
+    
+    // Migrate users table: Add businessEmail and businessLocation columns
+    const usersColumns = db.exec("PRAGMA table_info(users)")[0]?.values || [];
+    const usersHasBusinessEmail = usersColumns.some(col => col[1] === 'businessEmail');
+    if (!usersHasBusinessEmail) {
+      db.run('ALTER TABLE users ADD COLUMN businessEmail TEXT');
+      console.log('✅ Migrated users table: added businessEmail column');
+    }
+    
+    const usersHasBusinessLocation = usersColumns.some(col => col[1] === 'businessLocation');
+    if (!usersHasBusinessLocation) {
+      db.run('ALTER TABLE users ADD COLUMN businessLocation TEXT');
+      console.log('✅ Migrated users table: added businessLocation column');
     }
     
     const expensesColumns = db.exec("PRAGMA table_info(expenses)")[0]?.values || [];
@@ -423,7 +439,7 @@ app.put('/api/expenses/:id', (req, res) => {
 
 app.post('/api/auth/register', (req, res) => {
   try {
-    const { id, email, password, fullName, businessName, phone } = req.body;
+    const { id, email, password, fullName, businessName, phone, businessEmail, businessLocation } = req.body;
     
     const checkStmt = db.prepare('SELECT id FROM users WHERE email = ?');
     checkStmt.bind([email]);

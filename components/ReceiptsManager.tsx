@@ -45,33 +45,38 @@ const ReceiptsManager: React.FC<ReceiptsManagerProps> = ({
       }
     }
 
+    // Business information for receipt
+    const businessName = 'ORIONHUB';
+    const businessPhone = '+1 234 567 8900';
+    const businessEmail = 'contact@orionhub.com';
+    const businessLocation = '123 Business Street, City';
+
     try {
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
-      const businessName = 'ORIONHUB';
       
       // Header
       doc.setFillColor(30, 64, 175);
-      doc.rect(0, 0, pageWidth, 40, 'F');
+      doc.rect(0, 0, pageWidth, 35, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
+      doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
-      doc.text(businessName, pageWidth / 2, 20, { align: 'center' });
-      doc.setFontSize(12);
+      doc.text(businessName, pageWidth / 2, 18, { align: 'center' });
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text('Sales Receipt', pageWidth / 2, 30, { align: 'center' });
+      doc.text('Sales Receipt', pageWidth / 2, 28, { align: 'center' });
       
       // Receipt ID
       doc.setFillColor(241, 245, 249);
-      doc.roundedRect(15, 48, pageWidth - 30, 15, 3, 3, 'F');
+      doc.roundedRect(15, 42, pageWidth - 30, 12, 2, 2, 'F');
       doc.setTextColor(30, 64, 175);
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(`#${receipt.id}`, pageWidth / 2, 58, { align: 'center' });
+      doc.text(`#${receipt.id}`, pageWidth / 2, 50, { align: 'center' });
       
-      // Details
-      let yPos = 75;
+      // Details - reduced line height
+      let yPos = 62;
       doc.setTextColor(100, 116, 139);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -91,66 +96,88 @@ const ReceiptsManager: React.FC<ReceiptsManagerProps> = ({
         doc.setFont('helvetica', 'bold');
         doc.text(value, pageWidth - 20, yPos, { align: 'right' });
         doc.setFont('helvetica', 'normal');
-        yPos += 10;
+        yPos += 7;
       });
       
       // Total
-      yPos += 5;
+      yPos += 3;
       doc.setDrawColor(30, 64, 175);
-      doc.setLineWidth(0.5);
+      doc.setLineWidth(0.3);
       doc.line(20, yPos, pageWidth - 20, yPos);
-      yPos += 15;
+      yPos += 8;
       
       doc.setTextColor(71, 85, 105);
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.text('Total Amount', 20, yPos);
       doc.setTextColor(30, 64, 175);
-      doc.setFontSize(28);
+      doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
       doc.text(`${currency}${receipt.totalAmount.toLocaleString()}`, pageWidth - 20, yPos, { align: 'right' });
       
-      // Customer Info
-      if (receipt.customerName || receipt.customerPhone) {
-        yPos += 20;
-        doc.setFillColor(240, 253, 244);
-        doc.roundedRect(15, yPos - 5, pageWidth - 30, 25, 3, 3, 'F');
-        doc.setTextColor(22, 101, 52);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('CUSTOMER INFORMATION', 20, yPos + 3);
-        yPos += 10;
-        doc.setFont('helvetica', 'normal');
-        if (receipt.customerName) {
-          doc.setTextColor(21, 128, 61);
-          doc.text('Name', 20, yPos);
-          doc.setTextColor(22, 101, 52);
-          doc.setFont('helvetica', 'bold');
-          doc.text(receipt.customerName, pageWidth - 20, yPos, { align: 'right' });
-          doc.setFont('helvetica', 'normal');
-          yPos += 8;
-        }
-        if (receipt.customerPhone) {
-          doc.setTextColor(21, 128, 61);
-          doc.text('Phone', 20, yPos);
-          doc.setTextColor(22, 101, 52);
-          doc.setFont('helvetica', 'bold');
-          doc.text(receipt.customerPhone, pageWidth - 20, yPos, { align: 'right' });
-        }
-      }
-      
-      // Footer
-      yPos = 140;
-      doc.setFillColor(30, 64, 175);
-      doc.rect(0, yPos, pageWidth, 50, 'F');
+      // Customer Info - Always show section
       yPos += 15;
-      doc.setTextColor(255, 255, 255);
+      doc.setFillColor(240, 253, 244);
+      doc.roundedRect(15, yPos - 5, pageWidth - 30, 30, 3, 3, 'F');
+      doc.setTextColor(22, 101, 52);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('Thank You for Your Purchase!', pageWidth / 2, yPos + 8, { align: 'center' });
+      doc.text('CUSTOMER INFORMATION', 20, yPos + 3);
+      yPos += 12;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text('Please keep this receipt for your records.', pageWidth / 2, yPos + 15, { align: 'center' });
+      
+      if (receipt.customerName) {
+        doc.setTextColor(21, 128, 61);
+        doc.text('Name', 20, yPos);
+        doc.setTextColor(22, 101, 52);
+        doc.setFont('helvetica', 'bold');
+        doc.text(receipt.customerName, pageWidth - 20, yPos, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        yPos += 8;
+      }
+      if (receipt.customerPhone) {
+        doc.setTextColor(21, 128, 61);
+        doc.text('Phone', 20, yPos);
+        doc.setTextColor(22, 101, 52);
+        doc.setFont('helvetica', 'bold');
+        doc.text(receipt.customerPhone, pageWidth - 20, yPos, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+      }
+      if (!receipt.customerName && !receipt.customerPhone) {
+        doc.setTextColor(21, 128, 61);
+        doc.text('No customer information provided', 20, yPos);
+      }
+      
+      // Footer - Dynamic position based on content, always at bottom
+      const footerYPos = yPos + 20;
+      doc.setFillColor(30, 64, 175);
+      doc.rect(0, footerYPos, pageWidth, 60, 'F');
+      
+      let footerTextY = footerYPos + 12;
+      doc.setTextColor(255, 255, 255);
+      
+      // Business Information in footer
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      if (businessLocation) {
+        doc.text(businessLocation, pageWidth / 2, footerTextY, { align: 'center' });
+        footerTextY += 5;
+      }
+      if (businessPhone) {
+        doc.text(`Phone: ${businessPhone}`, pageWidth / 2, footerTextY, { align: 'center' });
+        footerTextY += 5;
+      }
+      if (businessEmail) {
+        doc.text(`Email: ${businessEmail}`, pageWidth / 2, footerTextY, { align: 'center' });
+        footerTextY += 8;
+      }
+      
+      // Thank you message
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Thank You for Your Purchase!', pageWidth / 2, footerTextY + 5, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('Please keep this receipt for your records.', pageWidth / 2, footerTextY + 11, { align: 'center' });
       
       // Try to use Web Share API for direct sharing to WhatsApp
       const pdfBlob = doc.output('blob');
