@@ -155,7 +155,7 @@ async function initDatabase() {
   // Create admin account if not exists
   const adminCheck = db.exec("SELECT id FROM users WHERE email = 'zionpro@gmail.com'")[0]?.values || [];
   if (adminCheck.length === 0) {
-    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
       'admin', 'zionpro@gmail.com', 'zionpro', 'System Administrator', 'ZION Pro', '', '', '',
       'admin', 'active', 0, null, null, null, Date.now(), null
     ]);
