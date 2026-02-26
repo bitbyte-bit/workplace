@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Receipt } from '../types';
-import { ReceiptIcon, DownloadIcon, SearchIcon, FileTextIcon, TrashIcon, PhoneIcon, SendIcon } from './Icons';
+import { ReceiptIcon, DownloadIcon, SearchIcon, FileTextIcon, TrashIcon, PhoneIcon, SendIcon, WhatsAppIcon } from './Icons';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface ReceiptsManagerProps {
@@ -29,8 +29,40 @@ const ReceiptsManager: React.FC<ReceiptsManagerProps> = ({
 
   const sortedReceipts = [...filteredReceipts].sort((a, b) => b.date - a.date);
 
+  const handleSendViaWhatsApp = (receipt: Receipt) => {
+    if (!receipt.customerPhone) {
+      alert('No phone number available for this receipt');
+      return;
+    }
+
+    // Format phone number - remove any non-digit characters except +
+    let phone = receipt.customerPhone.replace(/[^\d+]/g, '');
+    // Add country code if not present (assuming US/Canada +1)
+    if (!phone.startsWith('+')) {
+      if (phone.length === 10) {
+        phone = '+1' + phone;
+      } else {
+        phone = '+' + phone;
+      }
+    }
+
+    // Create receipt message
+    const date = new Date(receipt.date).toLocaleDateString();
+    const message = `*RECEIPT* %0A%0A` +
+      `Receipt #: ${receipt.id}%0A` +
+      `Date: ${date}%0A%0A` +
+      `Item: ${receipt.itemName}%0A` +
+      `Category: ${receipt.category}%0A` +
+      `Quantity: ${receipt.quantity}%0A` +
+      `Total: ${currency}${receipt.totalAmount.toLocaleString()}%0A%0A` +
+      `Thank you for your business!`;
+
+    // Open WhatsApp with pre-filled message
+    window.open(`https://wa.me/${phone.replace(/\+/g, '')}?text=${message}`, '_blank');
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col min-h-[calc(100vh-220px)]">
       {/* Header */}
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30">
         <div className="flex flex-wrap justify-between items-center gap-4">
@@ -59,7 +91,7 @@ const ReceiptsManager: React.FC<ReceiptsManagerProps> = ({
       </div>
 
       {/* Receipts List */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+      <div className="flex-1 bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
         {sortedReceipts.length === 0 ? (
           <div className="py-16 text-center">
             <div className="flex justify-center mb-4">
@@ -136,6 +168,15 @@ const ReceiptsManager: React.FC<ReceiptsManagerProps> = ({
                     </td>
                     <td className="px-8 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {receipt.customerPhone && (
+                          <button
+                            onClick={() => handleSendViaWhatsApp(receipt)}
+                            className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-colors"
+                            title="Send via WhatsApp"
+                          >
+                            <WhatsAppIcon className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => onDownloadPDF(receipt)}
                           className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-colors"
