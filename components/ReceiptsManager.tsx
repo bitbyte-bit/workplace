@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Receipt } from '../types';
 import { ReceiptIcon, DownloadIcon, SearchIcon, FileTextIcon, TrashIcon, PhoneIcon, SendIcon } from './Icons';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ReceiptsManagerProps {
   receipts: Receipt[];
@@ -16,6 +17,7 @@ const ReceiptsManager: React.FC<ReceiptsManagerProps> = ({
   onDeleteReceipt,
   onDownloadPDF,
 }) => {
+  const { colors } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredReceipts = receipts.filter(receipt => 

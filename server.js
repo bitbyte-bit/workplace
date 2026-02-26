@@ -33,6 +33,7 @@ async function initDatabase() {
   db.run(`
     CREATE TABLE IF NOT EXISTS sales (
       id TEXT PRIMARY KEY,
+      userId TEXT,
       itemName TEXT,
       category TEXT,
       quantity REAL,
@@ -43,6 +44,7 @@ async function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS stock (
       id TEXT PRIMARY KEY,
+      userId TEXT,
       name TEXT,
       quantity REAL,
       costPrice REAL,
@@ -55,6 +57,7 @@ async function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS debts (
       id TEXT PRIMARY KEY,
+      userId TEXT,
       debtorName TEXT,
       phoneNumber TEXT,
       amount REAL,
@@ -65,6 +68,7 @@ async function initDatabase() {
 
     CREATE TABLE IF NOT EXISTS expenses (
       id TEXT PRIMARY KEY,
+      userId TEXT,
       category TEXT,
       amount REAL,
       description TEXT,
@@ -97,6 +101,40 @@ async function initDatabase() {
       UNIQUE(userId, key)
     );
   `);
+  
+  // Migrate existing data: Add userId column if it doesn't exist
+  try {
+    // Check if userId column exists in sales table
+    const salesColumns = db.exec("PRAGMA table_info(sales)")[0]?.values || [];
+    const salesHasUserId = salesColumns.some(col => col[1] === 'userId');
+    if (!salesHasUserId) {
+      db.run('ALTER TABLE sales ADD COLUMN userId TEXT');
+      console.log('✅ Migrated sales table: added userId column');
+    }
+    
+    const stockColumns = db.exec("PRAGMA table_info(stock)")[0]?.values || [];
+    const stockHasUserId = stockColumns.some(col => col[1] === 'userId');
+    if (!stockHasUserId) {
+      db.run('ALTER TABLE stock ADD COLUMN userId TEXT');
+      console.log('✅ Migrated stock table: added userId column');
+    }
+    
+    const debtsColumns = db.exec("PRAGMA table_info(debts)")[0]?.values || [];
+    const debtsHasUserId = debtsColumns.some(col => col[1] === 'userId');
+    if (!debtsHasUserId) {
+      db.run('ALTER TABLE debts ADD COLUMN userId TEXT');
+      console.log('✅ Migrated debts table: added userId column');
+    }
+    
+    const expensesColumns = db.exec("PRAGMA table_info(expenses)")[0]?.values || [];
+    const expensesHasUserId = expensesColumns.some(col => col[1] === 'userId');
+    if (!expensesHasUserId) {
+      db.run('ALTER TABLE expenses ADD COLUMN userId TEXT');
+      console.log('✅ Migrated expenses table: added userId column');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
   
   // Create admin account if not exists
   const adminCheck = db.exec("SELECT id FROM users WHERE email = 'zionpro@gmail.com'")[0]?.values || [];
@@ -131,7 +169,12 @@ function triggerSave() {
 // Sales endpoints
 app.get('/api/sales', (req, res) => {
   try {
-    const stmt = db.prepare('SELECT * FROM sales ORDER BY date DESC');
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    const stmt = db.prepare('SELECT * FROM sales WHERE userId = ? ORDER BY date DESC');
+    stmt.bind([userId]);
     const sales = [];
     while (stmt.step()) {
       sales.push(stmt.getAsObject());
@@ -145,8 +188,12 @@ app.get('/api/sales', (req, res) => {
 
 app.post('/api/sales', (req, res) => {
   try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     const { id, itemName, category, quantity, price, cost, date } = req.body;
-    db.run('INSERT INTO sales VALUES (?, ?, ?, ?, ?, ?, ?)', [id, itemName, category, quantity, price, cost, date]);
+    db.run('INSERT INTO sales VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [id, userId, itemName, category, quantity, price, cost, date]);
     triggerSave();
     res.json({ success: true });
   } catch (error) {
@@ -156,7 +203,11 @@ app.post('/api/sales', (req, res) => {
 
 app.delete('/api/sales/:id', (req, res) => {
   try {
-    db.run('DELETE FROM sales WHERE id = ?', [req.params.id]);
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    db.run('DELETE FROM sales WHERE id = ? AND userId = ?', [req.params.id, userId]);
     triggerSave();
     res.json({ success: true });
   } catch (error) {
@@ -167,7 +218,12 @@ app.delete('/api/sales/:id', (req, res) => {
 // Stock endpoints
 app.get('/api/stock', (req, res) => {
   try {
-    const stmt = db.prepare('SELECT * FROM stock');
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    const stmt = db.prepare('SELECT * FROM stock WHERE userId = ?');
+    stmt.bind([userId]);
     const stock = [];
     while (stmt.step()) {
       const item = stmt.getAsObject();
@@ -183,9 +239,13 @@ app.get('/api/stock', (req, res) => {
 
 app.post('/api/stock', (req, res) => {
   try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     const { id, name, quantity, costPrice, sellingPrice, lastUpdated, lowStockThreshold, imageUrl, costHistory } = req.body;
-    db.run('INSERT OR REPLACE INTO stock VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-      id, name, quantity, costPrice, sellingPrice, lastUpdated, lowStockThreshold, imageUrl || null, JSON.stringify(costHistory || [])
+    db.run('INSERT OR REPLACE INTO stock VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+      id, userId, name, quantity, costPrice, sellingPrice, lastUpdated, lowStockThreshold, imageUrl || null, JSON.stringify(costHistory || [])
     ]);
     triggerSave();
     res.json({ success: true });
@@ -196,9 +256,13 @@ app.post('/api/stock', (req, res) => {
 
 app.put('/api/stock/:id', (req, res) => {
   try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     const { name, quantity, costPrice, sellingPrice, lowStockThreshold, imageUrl, costHistory } = req.body;
-    db.run('UPDATE stock SET name=?, quantity=?, costPrice=?, sellingPrice=?, lastUpdated=?, lowStockThreshold=?, imageUrl=?, costHistory=? WHERE id=?', [
-      name, quantity, costPrice, sellingPrice, Date.now(), lowStockThreshold, imageUrl || null, JSON.stringify(costHistory || []), req.params.id
+    db.run('UPDATE stock SET userId=?, name=?, quantity=?, costPrice=?, sellingPrice=?, lastUpdated=?, lowStockThreshold=?, imageUrl=?, costHistory=? WHERE id=?', [
+      userId, name, quantity, costPrice, sellingPrice, Date.now(), lowStockThreshold, imageUrl || null, JSON.stringify(costHistory || []), req.params.id
     ]);
     triggerSave();
     res.json({ success: true });
@@ -209,7 +273,11 @@ app.put('/api/stock/:id', (req, res) => {
 
 app.delete('/api/stock/:id', (req, res) => {
   try {
-    db.run('DELETE FROM stock WHERE id = ?', [req.params.id]);
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    db.run('DELETE FROM stock WHERE id = ? AND userId = ?', [req.params.id, userId]);
     triggerSave();
     res.json({ success: true });
   } catch (error) {
@@ -220,7 +288,12 @@ app.delete('/api/stock/:id', (req, res) => {
 // Debts endpoints
 app.get('/api/debts', (req, res) => {
   try {
-    const stmt = db.prepare('SELECT * FROM debts ORDER BY date DESC');
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    const stmt = db.prepare('SELECT * FROM debts WHERE userId = ? ORDER BY date DESC');
+    stmt.bind([userId]);
     const debts = [];
     while (stmt.step()) {
       const debt = stmt.getAsObject();
@@ -236,8 +309,12 @@ app.get('/api/debts', (req, res) => {
 
 app.post('/api/debts', (req, res) => {
   try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     const { id, debtorName, phoneNumber, amount, description, isPaid, date } = req.body;
-    db.run('INSERT INTO debts VALUES (?, ?, ?, ?, ?, ?, ?)', [id, debtorName, phoneNumber, amount, description, isPaid ? 1 : 0, date]);
+    db.run('INSERT INTO debts VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [id, userId, debtorName, phoneNumber, amount, description, isPaid ? 1 : 0, date]);
     triggerSave();
     res.json({ success: true });
   } catch (error) {
@@ -247,9 +324,13 @@ app.post('/api/debts', (req, res) => {
 
 app.put('/api/debts/:id', (req, res) => {
   try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     const { debtorName, phoneNumber, amount, description, isPaid } = req.body;
-    db.run('UPDATE debts SET debtorName=?, phoneNumber=?, amount=?, description=?, isPaid=? WHERE id=?', [
-      debtorName, phoneNumber, amount, description, isPaid ? 1 : 0, req.params.id
+    db.run('UPDATE debts SET userId=?, debtorName=?, phoneNumber=?, amount=?, description=?, isPaid=? WHERE id=?', [
+      userId, debtorName, phoneNumber, amount, description, isPaid ? 1 : 0, req.params.id
     ]);
     triggerSave();
     res.json({ success: true });
@@ -260,7 +341,11 @@ app.put('/api/debts/:id', (req, res) => {
 
 app.delete('/api/debts/:id', (req, res) => {
   try {
-    db.run('DELETE FROM debts WHERE id = ?', [req.params.id]);
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    db.run('DELETE FROM debts WHERE id = ? AND userId = ?', [req.params.id, userId]);
     triggerSave();
     res.json({ success: true });
   } catch (error) {
@@ -271,7 +356,12 @@ app.delete('/api/debts/:id', (req, res) => {
 // Expenses endpoints
 app.get('/api/expenses', (req, res) => {
   try {
-    const stmt = db.prepare('SELECT * FROM expenses ORDER BY date DESC');
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    const stmt = db.prepare('SELECT * FROM expenses WHERE userId = ? ORDER BY date DESC');
+    stmt.bind([userId]);
     const expenses = [];
     while (stmt.step()) {
       expenses.push(stmt.getAsObject());
@@ -285,8 +375,12 @@ app.get('/api/expenses', (req, res) => {
 
 app.post('/api/expenses', (req, res) => {
   try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     const { id, category, amount, description, date, frequency } = req.body;
-    db.run('INSERT INTO expenses VALUES (?, ?, ?, ?, ?, ?)', [id, category, amount, description, date, frequency]);
+    db.run('INSERT INTO expenses VALUES (?, ?, ?, ?, ?, ?, ?)', [id, userId, category, amount, description, date, frequency]);
     triggerSave();
     res.json({ success: true });
   } catch (error) {
@@ -296,7 +390,11 @@ app.post('/api/expenses', (req, res) => {
 
 app.delete('/api/expenses/:id', (req, res) => {
   try {
-    db.run('DELETE FROM expenses WHERE id = ?', [req.params.id]);
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    db.run('DELETE FROM expenses WHERE id = ? AND userId = ?', [req.params.id, userId]);
     triggerSave();
     res.json({ success: true });
   } catch (error) {
@@ -306,9 +404,13 @@ app.delete('/api/expenses/:id', (req, res) => {
 
 app.put('/api/expenses/:id', (req, res) => {
   try {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     const { category, amount, description, date, frequency } = req.body;
-    db.run('UPDATE expenses SET category=?, amount=?, description=?, date=?, frequency=? WHERE id=?', [
-      category, amount, description, date, frequency, req.params.id
+    db.run('UPDATE expenses SET userId=?, category=?, amount=?, description=?, date=?, frequency=? WHERE id=?', [
+      userId, category, amount, description, date, frequency, req.params.id
     ]);
     triggerSave();
     res.json({ success: true });
@@ -733,7 +835,13 @@ app.delete('/api/admin/users/:id', (req, res) => {
 // Dashboard summary endpoint
 app.get('/api/summary', (req, res) => {
   try {
-    const salesStmt = db.prepare('SELECT * FROM sales');
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const salesStmt = db.prepare('SELECT * FROM sales WHERE userId = ?');
+    salesStmt.bind([userId]);
     const sales = [];
     while (salesStmt.step()) {
       sales.push(salesStmt.getAsObject());
@@ -741,7 +849,8 @@ app.get('/api/summary', (req, res) => {
     salesStmt.free();
     const salesTotal = sales.reduce((acc, s) => acc + (Number(s.price) * Number(s.quantity)), 0);
 
-    const stockStmt = db.prepare('SELECT * FROM stock');
+    const stockStmt = db.prepare('SELECT * FROM stock WHERE userId = ?');
+    stockStmt.bind([userId]);
     const stock = [];
     while (stockStmt.step()) {
       const item = stockStmt.getAsObject();
@@ -751,7 +860,8 @@ app.get('/api/summary', (req, res) => {
     stockStmt.free();
     const totalStockValue = stock.reduce((acc, item) => acc + (Number(item.quantity) * Number(item.costPrice)), 0);
 
-    const debtsStmt = db.prepare('SELECT * FROM debts');
+    const debtsStmt = db.prepare('SELECT * FROM debts WHERE userId = ?');
+    debtsStmt.bind([userId]);
     const debts = [];
     while (debtsStmt.step()) {
       const debt = debtsStmt.getAsObject();
@@ -761,7 +871,8 @@ app.get('/api/summary', (req, res) => {
     debtsStmt.free();
     const unpaidDebts = debts.filter(d => !d.isPaid).reduce((acc, d) => acc + Number(d.amount), 0);
 
-    const expensesStmt = db.prepare('SELECT * FROM expenses');
+    const expensesStmt = db.prepare('SELECT * FROM expenses WHERE userId = ?');
+    expensesStmt.bind([userId]);
     const expenses = [];
     while (expensesStmt.step()) {
       expenses.push(expensesStmt.getAsObject());
@@ -779,92 +890,6 @@ app.get('/api/summary', (req, res) => {
       totalExpenses,
       lowStockItems
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Export/Import endpoints
-app.get('/api/export', (req, res) => {
-  try {
-    const sales = db.exec('SELECT * FROM sales')[0]?.values || [];
-    const stock = db.exec('SELECT * FROM stock')[0]?.values || [];
-    const debts = db.exec('SELECT * FROM debts')[0]?.values || [];
-    const expenses = db.exec('SELECT * FROM expenses')[0]?.values || [];
-
-    const salesCols = db.exec('PRAGMA table_info(sales)')[0]?.columns || [];
-    const stockCols = db.exec('PRAGMA table_info(stock)')[0]?.columns || [];
-    const debtsCols = db.exec('PRAGMA table_info(debts)')[0]?.columns || [];
-    const expensesCols = db.exec('PRAGMA table_info(expenses)')[0]?.columns || [];
-
-    const rowsToObjects = (rows, cols) => rows.map(row => {
-      const obj = {};
-      cols.forEach((col, i) => obj[col] = row[i]);
-      return obj;
-    });
-
-    const data = {
-      sales: rowsToObjects(sales, salesCols),
-      stock: rowsToObjects(stock, stockCols),
-      debts: rowsToObjects(debts, debtsCols),
-      expenses: rowsToObjects(expenses, expensesCols),
-      exportedAt: new Date().toISOString(),
-    };
-
-    res.setHeader('Content-Disposition', `attachment; filename="zion_records_${Date.now()}.json"`);
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(data, null, 2));
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/import', (req, res) => {
-  try {
-    const { sales, stock, debts, expenses } = req.body;
-
-    db.run('DELETE FROM sales');
-    db.run('DELETE FROM stock');
-    db.run('DELETE FROM debts');
-    db.run('DELETE FROM expenses');
-
-    if (sales && Array.isArray(sales)) {
-      for (const sale of sales) {
-        db.run('INSERT INTO sales VALUES (?, ?, ?, ?, ?, ?, ?)', [
-          sale.id, sale.itemName, sale.category, sale.quantity, sale.price, sale.cost, sale.date
-        ]);
-      }
-    }
-
-    if (stock && Array.isArray(stock)) {
-      for (const item of stock) {
-        db.run('INSERT OR REPLACE INTO stock VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-          item.id, item.name, item.quantity, item.costPrice, item.sellingPrice,
-          item.lastUpdated, item.lowStockThreshold, item.imageUrl || null,
-          JSON.stringify(item.costHistory || [])
-        ]);
-      }
-    }
-
-    if (debts && Array.isArray(debts)) {
-      for (const debt of debts) {
-        db.run('INSERT INTO debts VALUES (?, ?, ?, ?, ?, ?, ?)', [
-          debt.id, debt.debtorName, debt.phoneNumber, debt.amount, debt.description,
-          debt.isPaid ? 1 : 0, debt.date
-        ]);
-      }
-    }
-
-    if (expenses && Array.isArray(expenses)) {
-      for (const expense of expenses) {
-        db.run('INSERT INTO expenses VALUES (?, ?, ?, ?, ?, ?)', [
-          expense.id, expense.category, expense.amount, expense.description, expense.date, expense.frequency
-        ]);
-      }
-    }
-
-    saveDatabase();
-    res.json({ success: true, message: 'Data imported successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

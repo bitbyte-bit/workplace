@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Debt } from '../types';
 import { TrashIcon, DebtIcon, ClockIcon, PhoneIcon, MessageIcon, SendIcon } from './Icons';
 import PasswordModal from './PasswordModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
   debts: Debt[];
@@ -18,6 +19,7 @@ interface Props {
 type ModalAction = 'edit' | 'delete' | 'whatsapp' | null;
 
 const DebtManager: React.FC<Props> = ({ debts, onAddDebt, onUpdateDebt, onToggleDebt, onDeleteDebt, currency, businessName = 'Our Business', managerPassword = '' }) => {
+  const { colors } = useTheme();
   const [debtorName, setDebtorName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [amount, setAmount] = useState(0);

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Sale, Receipt } from '../types';
 import { ReceiptIcon, SendIcon, PhoneIcon, XIcon, DownloadIcon, FileTextIcon, CheckCircleIcon } from './Icons';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -20,8 +21,10 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   onSaveReceipt,
   onDownloadPDF,
 }) => {
+  const { colors } = useTheme();
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sentSuccessfully, setSentSuccessfully] = useState(false);
 
@@ -47,7 +50,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
       price: sale.price,
       totalAmount,
       customerPhone: phoneNumber,
-      customerName: sale.customerName,
+      customerName: customerName,
       date: Date.now(),
       sentVia: 'SMS',
     };
@@ -66,8 +69,8 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
       quantity: sale.quantity,
       price: sale.price,
       totalAmount,
-      customerPhone: sale.customerPhone,
-      customerName: sale.customerName,
+      customerPhone: sale.customerPhone || phoneNumber,
+      customerName: sale.customerName || customerName,
       date: sale.date,
     };
     onDownloadPDF(receipt);
@@ -76,6 +79,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const handleClose = () => {
     setShowPhoneInput(false);
     setPhoneNumber('');
+    setCustomerName('');
     setSentSuccessfully(false);
     onClose();
   };
@@ -148,6 +152,19 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 </div>
                 <h4 className="font-black text-lg text-slate-800">Enter Phone Number</h4>
                 <p className="text-slate-500 text-sm">Where should we send the receipt?</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                  Customer Name
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Enter customer name"
+                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-lg"
+                />
               </div>
 
               <div className="space-y-2">

@@ -4,6 +4,7 @@ import { Expense, ExpenseFrequency } from '../types';
 import { TrashIcon, ExpenseIcon, ClockIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 import CategoryModal from './CategoryModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 // EditIcon component inline
 const EditIcon = ({ className = "w-4 h-4" }) => (
@@ -38,6 +39,7 @@ const PREDEFINED_CATEGORIES = [
 ];
 
 const ExpenseManager: React.FC<Props> = ({ expenses, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddExpense, onUpdateExpense, onDeleteExpense, managerPassword, currency }) => {
+  const { colors } = useTheme();
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState('');

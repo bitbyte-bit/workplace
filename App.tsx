@@ -9,14 +9,13 @@ import Reports from './components/Reports';
 import SearchBar from './components/SearchBar';
 import Notification, { NotificationType } from './components/Notification';
 import ThemeSwitcher from './components/ThemeSwitcher';
-import RecordsManager from './components/RecordsManager';
 import Auth from './components/Auth';
 import AdminDashboard from './components/AdminDashboard';
 import ReceiptsManager from './components/ReceiptsManager';
 import { ThemeProvider } from './contexts/ThemeContext';
 import * as db from './services/db';
 import { User, fetchManagerPin, saveManagerPin, saveSecurityQuestion } from './services/db';
-import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, FolderIcon, ShieldIcon, ReceiptIcon } from './components/Icons';
+import { DashboardIcon, SalesIcon, StockIcon, DebtIcon, ExpenseIcon, ReportsIcon, ClockIcon, ShieldIcon, ReceiptIcon } from './components/Icons';
 import { Tab, Sale, StockItem, Debt, Expense, BusinessData, Receipt } from './types';
 
 interface SearchResult {
@@ -50,7 +49,6 @@ function App() {
   const [currency, setCurrency] = useState('$');
   const [reminderTime, setReminderTime] = useState('18:00');
   const [lastAlarmShown, setLastAlarmShown] = useState<string | null>(null);
-  const [showRecordsManager, setShowRecordsManager] = useState(false);
 
   const showNotification = useCallback((message: string, type: NotificationType = 'success') => {
     setNotification({ message, type });
@@ -104,6 +102,8 @@ function App() {
           try {
             const { user: freshUser } = await db.getUserProfile(settings.currentUser.id);
             setUser(freshUser);
+            // Set the current user ID for API requests after restoring session
+            db.setCurrentUserId(freshUser.id);
           } catch {
             setUser(null);
           }
@@ -137,7 +137,7 @@ function App() {
       const currentHM = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       const todayDate = now.toDateString();
       if (currentHM === reminderTime && lastAlarmShown !== todayDate) {
-        showNotification("Time to record your business records for today!", "success");
+        showNotification("Time to review your business data for today!", "success");
         setLastAlarmShown(todayDate);
         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play(); } catch(e){}
       }
@@ -221,6 +221,8 @@ function App() {
 
   const handleLogin = async (loggedInUser: User) => {
     setUser(loggedInUser);
+    // Set the current user ID for API requests
+    db.setCurrentUserId(loggedInUser.id);
     if (loggedInUser.email === 'zionpro@gmail.com' && loggedInUser.role === 'admin') {
       setAdminId(loggedInUser.id);
       setShowAdminDashboard(true);
@@ -231,6 +233,8 @@ function App() {
 
   const handleLogout = () => {
     db.deleteSettings(undefined, 'currentUser');
+    // Clear the current user ID
+    db.setCurrentUserId(null);
     setUser(null);
     setAdminId(null);
     setShowAdminDashboard(false);
@@ -420,9 +424,9 @@ function App() {
       )}
       
       <div className="flex flex-col min-h-screen bg-[var(--color-background)] pb-32 md:pb-16 md:pl-64 transition-colors duration-500">
-        <aside className="hidden md:flex flex-col w-64 bg-white border-r h-full fixed left-0 top-0 p-6 shadow-xl">
-          <h1 className="text-3xl font-black text-blue-600 mb-10 tracking-tighter flex items-center gap-2">
-            ZION <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full uppercase">Pro</span>
+        <aside className="hidden md:flex flex-col w-64 bg-[var(--color-surface)] border-r h-full fixed left-0 top-0 p-6 shadow-xl" style={{ borderColor: 'var(--color-surface-border)' }}>
+          <h1 className="text-3xl font-black mb-10 tracking-tighter flex items-center gap-2" style={{ color: 'var(--color-primary)' }}>
+            ZION <span className="text-[10px] px-1.5 py-0.5 rounded-full uppercase font-black" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-text-inverse)' }}>Pro</span>
           </h1>
           <nav className="space-y-2">
             <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<DashboardIcon />} label="Analytics" />
@@ -432,7 +436,6 @@ function App() {
             <NavButton active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} icon={<ExpenseIcon />} label="Expenses" />
             <NavButton active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<ReportsIcon />} label="Reports" />
             <NavButton active={activeTab === 'receipts'} onClick={() => setActiveTab('receipts')} icon={<ReceiptIcon />} label="Receipts" />
-            <NavButton active={false} onClick={() => setShowRecordsManager(true)} icon={<FolderIcon />} label="Records" />
             {user?.role === 'admin' && (
               <NavButton 
                 active={showAdminDashboard} 
@@ -581,23 +584,6 @@ function App() {
             </>
           )}
         </main>
-        
-        {showRecordsManager && (
-          <RecordsManager 
-            onClose={() => setShowRecordsManager(false)}
-            data={businessData}
-            customCategories={customCategories}
-            managerPassword={managerPassword}
-            onChangePassword={handleChangePassword}
-            onCurrencyChange={handleCurrencyChange}
-            onReminderChange={handleReminderChange}
-            currency={currency}
-            userId={user.id}
-            userRole={user.role}
-            adminId={adminId}
-            onAdminLogin={handleAdminLogin}
-          />
-        )}
       </div>
     </>
   );

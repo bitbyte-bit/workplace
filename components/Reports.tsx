@@ -4,6 +4,7 @@ import { BusinessData, Sale, Expense, StockItem, Debt } from '../types';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { ReportsIcon, SalesIcon, ExpenseIcon, CheckCircleIcon } from './Icons';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement
 } from 'chart.js';
@@ -17,6 +18,7 @@ interface Props {
 }
 
 const Reports: React.FC<Props> = ({ data, currency }) => {
+  const { colors } = useTheme();
   const salesByDate = data.sales.reduce((acc, sale) => {
     const dateStr = new Date(sale.date).toLocaleDateString();
     acc[dateStr] = (acc[dateStr] || 0) + (sale.price * sale.quantity);

@@ -24,7 +24,7 @@ interface MonthlyData {
   debts: number;
 }
 
-export default function AdminDashboard({ adminId, onLogout, currency }: AdminDashboardProps) {
+export default function AdminDashboard({ adminId, onLogout, currency, receipts }: AdminDashboardProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);

@@ -24,9 +24,24 @@ function triggerAutoSave() {
   }, 2000);
 }
 
+// Current user ID for API requests
+let currentUserId: string | null = null;
+
+export function setCurrentUserId(userId: string | null) {
+  currentUserId = userId;
+}
+
+export function getCurrentUserId(): string | null {
+  return currentUserId;
+}
+
 // API helper functions
 async function apiGet<T>(endpoint: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`);
+  const headers: Record<string, string> = {};
+  if (currentUserId) {
+    headers['x-user-id'] = currentUserId;
+  }
+  const response = await fetch(`${API_BASE}${endpoint}`, { headers });
   if (!response.ok) {
     throw new Error(`API error: ${response.statusText}`);
   }
@@ -34,9 +49,13 @@ async function apiGet<T>(endpoint: string): Promise<T> {
 }
 
 async function apiPost<T>(endpoint: string, data: T): Promise<{ success: boolean }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (currentUserId) {
+    headers['x-user-id'] = currentUserId;
+  }
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -46,9 +65,13 @@ async function apiPost<T>(endpoint: string, data: T): Promise<{ success: boolean
 }
 
 async function apiPut<T>(endpoint: string, data: T): Promise<{ success: boolean }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (currentUserId) {
+    headers['x-user-id'] = currentUserId;
+  }
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -58,8 +81,13 @@ async function apiPut<T>(endpoint: string, data: T): Promise<{ success: boolean 
 }
 
 async function apiDelete(endpoint: string): Promise<{ success: boolean }> {
+  const headers: Record<string, string> = {};
+  if (currentUserId) {
+    headers['x-user-id'] = currentUserId;
+  }
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'DELETE',
+    headers,
   });
   if (!response.ok) {
     throw new Error(`API error: ${response.statusText}`);
@@ -69,7 +97,9 @@ async function apiDelete(endpoint: string): Promise<{ success: boolean }> {
 
 // Sync with server (saves to SQLite database)
 export async function syncToDevice(): Promise<void> {
-  await apiPost('/sync', {});
+  // The data is already saved via individual API calls
+  // This function is kept for backwards compatibility but now does nothing
+  console.log('Data sync handled automatically via API calls');
 }
 
 // Sales functions

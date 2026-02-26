@@ -5,6 +5,7 @@ import { TrashIcon, SalesIcon } from './Icons';
 import PasswordModal from './PasswordModal';
 import CategoryModal from './CategoryModal';
 import ReceiptModal from './ReceiptModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
   sales: Sale[];
@@ -31,6 +32,7 @@ const PREDEFINED_CATEGORIES = [
 ];
 
 const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCategory, onUpdateCategory, onDeleteCategory, onAddSale, onDeleteSale, onSaveReceipt, currency, managerPassword = '' }) => {
+  const { colors } = useTheme();
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('Smartphones');
   const [quantity, setQuantity] = useState(1);
@@ -179,10 +181,10 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
         }}
       />
 
-      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 space-y-6">
+      <div className="p-8 rounded-[2.5rem] border shadow-xl space-y-6" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-surface-border)', boxShadow: `0 20px 25px -5px ${colors.primary}10` }}>
         <div className="flex flex-wrap justify-between items-center gap-4">
-          <h3 className="font-black text-xl text-slate-800 flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-xl"><SalesIcon className="text-blue-600" /></div>
+          <h3 className="font-black text-xl flex items-center gap-3" style={{ color: 'var(--color-text)' }}>
+            <div className="p-2 rounded-xl" style={{ backgroundColor: `${colors.primary}20` }}><SalesIcon className="" style={{ color: colors.primary }} /></div>
             Record Electronics Sale
           </h3>
           <div className="flex gap-2">
@@ -192,7 +194,8 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
                 setEditingCategory(null);
                 setCategoryModalOpen(true);
               }}
-              className="text-blue-600 text-[10px] font-black uppercase tracking-widest hover:underline"
+              className="text-[10px] font-black uppercase tracking-widest hover:underline"
+              style={{ color: colors.primary }}
             >
               + Categories
             </button>
@@ -200,15 +203,16 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
         </div>
 
         {/* Categories Display */}
-        <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl">
+        <div className="flex flex-wrap gap-2 p-3 rounded-xl" style={{ backgroundColor: 'var(--color-background-alt)' }}>
           {allCategories.map(cat => (
             <span 
               key={cat} 
               className={`px-3 py-1 rounded-full text-[10px] font-black uppercase cursor-pointer hover:scale-105 transition-transform ${
                 category === cat 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-white text-slate-600 border border-slate-200'
+                  ? 'text-white' 
+                  : ''
               }`}
+              style={category === cat ? { backgroundColor: colors.primary } : { backgroundColor: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-surface-border)' }}
               onClick={() => setCategory(cat)}
               title="Click to select, right-click to edit"
               onContextMenu={(e) => {
@@ -301,34 +305,37 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
           {isOnCredit && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Name</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--color-text-muted)' }}>Customer Name</label>
                 <input
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:ring-2 font-bold"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-surface-border)', color: 'var(--color-text)' }}
                   placeholder="Customer full name"
                   required={isOnCredit}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--color-text-muted)' }}>Phone Number</label>
                 <input
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:ring-2 font-bold"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-surface-border)', color: 'var(--color-text)' }}
                   placeholder="07xx xxx xxx"
                   required={isOnCredit}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amount Paid ({currency})</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--color-text-muted)' }}>Amount Paid ({currency})</label>
                 <input
                   type="number"
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(Math.min(Number(e.target.value), price * quantity))}
-                  className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                  className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:ring-2 font-bold"
+                  style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-surface-border)', color: 'var(--color-text)' }}
                   min="0"
                   max={price * quantity}
                   step="0.01"
@@ -336,33 +343,33 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Balance ({currency})</label>
-                <div className="w-full p-3 bg-slate-100 border border-slate-200 rounded-2xl font-black text-lg text-slate-700">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--color-text-muted)' }}>Balance ({currency})</label>
+                <div className="w-full p-3 border rounded-2xl font-black text-lg" style={{ backgroundColor: 'var(--color-background-alt)', borderColor: 'var(--color-surface-border)', color: 'var(--color-text)' }}>
                   {currency}{((price * quantity) - (paidAmount || 0)).toLocaleString()}
                 </div>
               </div>
             </div>
           )}
 
-          <button type="submit" className="w-full bg-blue-600 text-white font-black py-4 rounded-[1.5rem] shadow-xl shadow-blue-200 hover:scale-[1.01] active:scale-[0.99] transition-all">
+          <button type="submit" className="w-full text-white font-black py-4 rounded-[1.5rem] shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all" style={{ backgroundColor: colors.primary, boxShadow: `0 10px 15px -3px ${colors.primary}40` }}>
             COMPLETE SALE ({currency}{(price * quantity).toLocaleString()})
           </button>
         </form>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 overflow-hidden">
+      <div className="rounded-[2.5rem] border shadow-xl overflow-hidden" style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-surface-border)' }}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product Info</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Qty</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Revenue</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+              <tr style={{ backgroundColor: 'var(--color-background-alt)' }}>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Date</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Product Info</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--color-text-muted)' }}>Qty</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: 'var(--color-text-muted)' }}>Revenue</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: 'var(--color-text-muted)' }}>Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y" style={{ borderColor: 'var(--color-surface-border)' }}>
               {sales.map((sale) => {
                 const totalAmount = sale.price * sale.quantity;
                 const profitLoss = (sale.price - sale.cost) * sale.quantity;
