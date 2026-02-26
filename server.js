@@ -155,8 +155,8 @@ async function initDatabase() {
   // Create admin account if not exists
   const adminCheck = db.exec("SELECT id FROM users WHERE email = 'zionpro@gmail.com'")[0]?.values || [];
   if (adminCheck.length === 0) {
-    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-      'admin', 'zionpro@gmail.com', 'zionpro', 'System Administrator', 'ZION Pro', '', 
+    db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+      'admin', 'zionpro@gmail.com', 'zionpro', 'System Administrator', 'ZION Pro', '', '', '',
       'admin', 'active', 0, null, null, null, Date.now(), null
     ]);
     console.log('✅ Admin account created: zionpro@gmail.com / zionpro');
@@ -450,7 +450,7 @@ app.post('/api/auth/register', (req, res) => {
     checkStmt.free();
     
     db.run('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-      id, email, password, fullName, businessName, phone, 'user', 'active', 0, null, null, null, Date.now(), null
+      id, email, password, fullName, businessName, phone, '', '', 'user', 'active', 0, null, null, null, Date.now(), null
     ]);
     
     triggerSave();
