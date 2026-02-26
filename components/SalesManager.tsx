@@ -81,8 +81,8 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
       cost: stockItem.costPrice,
       date: Date.now(),
       isOnCredit,
-      customerName: isOnCredit ? customerName : undefined,
-      customerPhone: isOnCredit ? customerPhone : undefined,
+      customerName: customerName || undefined,
+      customerPhone: customerPhone || undefined,
       paidAmount: isOnCredit ? (paidAmount || 0) : undefined,
       balance: isOnCredit ? balance : undefined,
     };
@@ -299,6 +299,30 @@ const SalesManager: React.FC<Props> = ({ sales, stock, customCategories, onAddCa
                 <p className="text-xs text-slate-400">Track partial payments and customer information</p>
               </div>
             </label>
+          </div>
+
+          {/* Customer Information - Always visible */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-xl">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Name (Optional)</label>
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                placeholder="Enter customer name"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number (Optional)</label>
+              <input
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                className="w-full p-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                placeholder="07xx xxx xxx"
+              />
+            </div>
           </div>
 
           {/* Credit Sale Fields */}

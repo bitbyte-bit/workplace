@@ -64,34 +64,47 @@ export const generateReceiptPDF = async (receipt: Receipt, currency: string, bus
   <title>Receipt #${receipt.id}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background: #fff; }
-    .receipt-container { border: 2px solid #1e40af; border-radius: 20px; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; }
+    html, body { height: 100%; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f1f5f9; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
+    .receipt-container { 
+      border: 2px solid #1e40af; 
+      border-radius: 20px; 
+      overflow: hidden; 
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      min-height: 700px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; flex-shrink: 0; }
     .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 5px; }
     .header p { font-size: 14px; opacity: 0.9; }
-    .receipt-id { background: #f1f5f9; padding: 15px 30px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+    .receipt-id { background: #f1f5f9; padding: 15px 30px; text-align: center; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
     .receipt-id span { font-family: monospace; font-size: 18px; font-weight: 600; color: #1e40af; background: white; padding: 8px 16px; border-radius: 8px; }
-    .details { padding: 30px; }
+    .details { padding: 25px 30px; flex-shrink: 0; }
     .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
     .detail-row:last-child { border-bottom: none; }
     .detail-label { color: #64748b; font-size: 14px; }
     .detail-value { font-weight: 600; color: #1e293b; font-size: 14px; }
-    .total-section { background: #f8fafc; padding: 25px 30px; border-top: 2px solid #1e40af; }
+    .total-section { background: #f8fafc; padding: 25px 30px; border-top: 2px solid #1e40af; flex-shrink: 0; }
     .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .total-label { font-size: 16px; color: #475569; }
     .total-amount { font-size: 32px; font-weight: 800; color: #1e40af; }
-    .customer-info { background: #f0fdf4; padding: 20px 30px; border-top: 1px solid #bbf7d0; }
+    .customer-info { background: #f0fdf4; padding: 20px 30px; border-top: 1px solid #bbf7d0; flex-shrink: 0; }
     .customer-info h3 { font-size: 14px; color: #166534; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-    .customer-row { display: flex; justify-content: space-between; font-size: 14px; }
+    .customer-row { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; }
     .customer-label { color: #15803d; }
     .customer-value { font-weight: 600; color: #166534; }
-    .footer { background: #1e40af; color: white; padding: 25px; text-align: center; }
+    .no-customer { color: #94a3b8; font-size: 13px; font-style: italic; }
+    .footer { background: #1e40af; color: white; padding: 25px; text-align: center; margin-top: auto; flex-shrink: 0; }
     .footer-address { margin-bottom: 10px; font-size: 12px; }
     .footer-address p { margin: 3px 0; }
     .footer h2 { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
     .footer p.thanks { font-size: 12px; opacity: 0.8; }
     .print-btn { position: fixed; top: 20px; right: 20px; padding: 12px 24px; background: #1e40af; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; z-index: 1000; }
-    @media print { .print-btn { display: none; } body { padding: 0; } }
+    @media print { .print-btn { display: none; } body { padding: 0; background: white; } .receipt-container { box-shadow: none; max-width: 100%; } }
   </style>
 </head>
 <body>
@@ -132,14 +145,30 @@ export const generateReceiptPDF = async (receipt: Receipt, currency: string, bus
         <span class="total-amount">${currency}${totalAmount.toLocaleString()}</span>
       </div>
     </div>
-    ${receipt.customerName || receipt.customerPhone ? `
     <div class="customer-info">
       <h3>Customer Information</h3>
-      ${receipt.customerName ? `<div class="customer-row"><span class="customer-label">Name</span><span class="customer-value">${receipt.customerName}</span></div>` : ''}
-      ${receipt.customerPhone ? `<div class="customer-row"><span class="customer-label">Phone</span><span class="detail-value">${receipt.customerPhone}</span></div>` : ''}
-      ${receipt.sentVia ? `<div class="customer-row"><span class="customer-label">Sent Via</span><span class="detail-value">${receipt.sentVia}</span></div>` : ''}
+      ${receipt.customerName ? `
+        <div class="customer-row">
+          <span class="customer-label">Name</span>
+          <span class="customer-value">${receipt.customerName}</span>
+        </div>
+      ` : ''}
+      ${receipt.customerPhone ? `
+        <div class="customer-row">
+          <span class="customer-label">Phone</span>
+          <span class="customer-value">${receipt.customerPhone}</span>
+        </div>
+      ` : ''}
+      ${!receipt.customerName && !receipt.customerPhone ? `
+        <div class="no-customer">No customer information provided</div>
+      ` : ''}
+      ${receipt.sentVia ? `
+        <div class="customer-row">
+          <span class="customer-label">Sent Via</span>
+          <span class="customer-value">${receipt.sentVia}</span>
+        </div>
+      ` : ''}
     </div>
-    ` : ''}
     <div class="footer">
       ${locationAddress || businessPhone ? `<div class="footer-address">${locationAddress ? `<p>${locationAddress}</p>` : ''}${businessPhone ? `<p>Phone: ${businessPhone}</p>` : ''}</div>` : ''}
       <h2>Thank You for Your Purchase!</h2>
@@ -261,33 +290,33 @@ export const downloadReceiptPDF = async (receipt: Receipt, currency: string, bus
     }
   }
   
-  // Footer with address
-  yPos = 140;
+  // Footer with address - calculate position based on content
+  const footerYPos = yPos + 20;
   doc.setFillColor(30, 64, 175);
-  doc.rect(0, yPos, pageWidth, 50, 'F');
+  doc.rect(0, footerYPos, pageWidth, 50, 'F');
   
-  yPos += 15;
+  let footerTextY = footerYPos + 15;
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
   
   if (locationAddress) {
-    doc.text(locationAddress, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 7;
+    doc.text(locationAddress, pageWidth / 2, footerTextY, { align: 'center' });
+    footerTextY += 7;
   }
   
   if (businessPhone) {
-    doc.text(`Phone: ${businessPhone}`, pageWidth / 2, yPos, { align: 'center' });
-    yPos += 7;
+    doc.text(`Phone: ${businessPhone}`, pageWidth / 2, footerTextY, { align: 'center' });
+    footerTextY += 7;
   }
   
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text('Thank You for Your Purchase!', pageWidth / 2, yPos + 8, { align: 'center' });
+  doc.text('Thank You for Your Purchase!', pageWidth / 2, footerTextY + 8, { align: 'center' });
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(255, 255, 255);
-  doc.text('Please keep this receipt for your records.', pageWidth / 2, yPos + 15, { align: 'center' });
+  doc.text('Please keep this receipt for your records.', pageWidth / 2, footerTextY + 15, { align: 'center' });
   
   // Save the PDF
   doc.save(`receipt_${receipt.id}_${new Date(receipt.date).toISOString().split('T')[0]}.pdf`);
